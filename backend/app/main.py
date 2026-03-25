@@ -15,7 +15,7 @@ from app.modules.medical_chat.router import router as medical_chat_router
 from app.modules.health_risk.router import router as health_risk_router
 from app.modules.blood_donation.router import router as blood_donation_router
 
-from app.modules.retinal_detection.model.router import router as retinal_router
+from app.modules.retinal_detection.model.router import router as router
 
 
 # ----------- FASTAPI APP -----------
