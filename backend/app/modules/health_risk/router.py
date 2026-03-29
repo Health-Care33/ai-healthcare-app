@@ -10,7 +10,6 @@ async def predict_risk(data: HealthRiskInput):
 
     result = predict_health_risk(data)
 
-    # temporary user id
     user_id = "demo_user"
 
     await save_prediction(

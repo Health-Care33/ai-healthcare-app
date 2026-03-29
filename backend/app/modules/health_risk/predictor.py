@@ -5,11 +5,18 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "model" / "health_risk_model.pkl"
 
-# Load trained model
-model = joblib.load(MODEL_PATH)
+model = None
+
+def load_model():
+    global model
+    if model is None:
+        model = joblib.load(MODEL_PATH)
+    return model
 
 
 def predict_health_risk(data):
+
+    model = load_model()
 
     features = np.array([[
         data.age,

@@ -2,8 +2,9 @@ import pytesseract
 from pdf2image import convert_from_path
 import os
 
-# Windows me Tesseract path set karna
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# ✅ Windows only
+if os.name == "nt":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
 def extract_text_from_pdf(pdf_path: str):
@@ -11,10 +12,8 @@ def extract_text_from_pdf(pdf_path: str):
     extracted_text = ""
 
     try:
-        # PDF ko images me convert karna
         images = convert_from_path(pdf_path)
 
-        # Har page pe OCR run karna
         for img in images:
             text = pytesseract.image_to_string(img)
             extracted_text += text + "\n"

@@ -1,20 +1,16 @@
 import os
 from groq import Groq
 
-# ---------------- GROQ CLIENT ---------------- #
-
+# ✅ FIXED ENV VARIABLE
 client = Groq(
-    api_key=os.getenv("API_KEY")
+    api_key=os.getenv("GROQ_API_KEY")
 )
 
-# ---------------- AI ANALYSIS FUNCTION ---------------- #
 
 def analyze_medical_report(report_text: str, question: str):
 
     prompt = f"""
 You are an expert medical AI assistant.
-
-A user uploaded a medical report. The OCR extracted text is below.
 
 Medical Report:
 {report_text}
