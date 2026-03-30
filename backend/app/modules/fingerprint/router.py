@@ -14,27 +14,29 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/predict-blood-group")
 async def predict_fingerprint(file: UploadFile = File(...)):
 
-    file_path = f"{UPLOAD_DIR}/{file.filename}"
+    try:
+        file_path = f"{UPLOAD_DIR}/{file.filename}"
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    # AI prediction
-    result = predict_blood_group(file_path)
+        result = predict_blood_group(file_path)
 
-    blood_group = result["blood_group"]
-    confidence = result["confidence"]
+        if "error" in result:
+            return {"success": False, "error": result["error"]}
 
-    # 🔥 SAVE TO DATABASE
-    await prediction_collection.insert_one({
-        "type": "fingerprint",
-        "file": file.filename,
-        "blood_group": blood_group,
-        "confidence": confidence
-    })
+        await prediction_collection.insert_one({
+            "type": "fingerprint",
+            "file": file.filename,
+            "blood_group": result["blood_group"],
+            "confidence": result["confidence"]
+        })
 
-    return {
-        "success": True,
-        "blood_group": blood_group,
-        "confidence": confidence
-    }
+        return {
+            "success": True,
+            "blood_group": result["blood_group"],
+            "confidence": result["confidence"]
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}

@@ -5,7 +5,7 @@ from fastapi import APIRouter, UploadFile, File
 from app.modules.retinal_detection.model.predictor import predict_retinal_disease
 from app.modules.retinal_detection.ai_helper import get_ai_medical_report
 from app.database.mongodb import prediction_collection
-
+from app.modules.retinal_detection.router import router as retinal_router
 router = APIRouter(tags=["Retina Detection"])
 
 UPLOAD_DIR = "uploads/retina"
