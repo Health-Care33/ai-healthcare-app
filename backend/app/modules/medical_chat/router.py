@@ -31,7 +31,14 @@ def ask_medical_ai(data: ChatRequest):
         question=data.question
     )
 
+    if "AI Error" in answer:
+        return {
+            "success": False,
+            "error": answer
+        }
+
     return {
+        "success": True,
         "question": data.question,
         "answer": answer
     }

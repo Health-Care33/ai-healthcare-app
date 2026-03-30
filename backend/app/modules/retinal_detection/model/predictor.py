@@ -23,10 +23,15 @@ def load_retinal_model():
         try:
             print("🔄 Loading Retinal Model...")
 
-            import tensorflow as tf  # ✅ lazy import
+            import tensorflow as tf  # ✅ lazy import (Render safe)
 
             BASE_DIR = os.path.dirname(os.path.abspath(__file__))
             model_path = os.path.join(BASE_DIR, "retinal_model.keras")
+
+            # ✅ FILE CHECK (IMPORTANT)
+            if not os.path.exists(model_path):
+                print("❌ Model file not found:", model_path)
+                return None
 
             model = tf.keras.models.load_model(model_path)
 
@@ -45,15 +50,25 @@ def predict_retinal_disease(img_path):
     model = load_retinal_model()
 
     if model is None:
-        return {"error": "Model not loaded"}
+        return {
+            "error": "Model not loaded"
+        }
 
     try:
         from tensorflow.keras.preprocessing import image  # ✅ lazy import
+
+        # ---------- IMAGE CHECK ----------
+        if not os.path.exists(img_path):
+            return {
+                "error": "Image file not found"
+            }
 
         # ---------- IMAGE PREPROCESSING ----------
         img = image.load_img(img_path, target_size=(224, 224))
         img_array = image.img_to_array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
+
+        print("📊 Image processed successfully")
 
         # ---------- PREDICTION ----------
         predictions = model.predict(img_array)[0]
@@ -90,6 +105,7 @@ def predict_retinal_disease(img_path):
         return result
 
     except Exception as e:
+        print("❌ Prediction error:", e)
         return {
             "error": "Prediction failed",
             "details": str(e)

@@ -1,8 +1,13 @@
+import os
 import requests
 
-API_KEY = "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"
+API_KEY = os.getenv("OPENROUTER_API_KEY")  # ✅ FIXED
+
 
 def get_ai_medical_report(disease, confidence):
+
+    if not API_KEY:
+        return "⚠️ AI service not configured."
 
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
@@ -15,32 +20,19 @@ def get_ai_medical_report(disease, confidence):
         prompt = f"""
 You are a professional eye specialist.
 
-Patient has:
 Disease: {disease}
 Confidence: {confidence}%
 
-Give response in this EXACT format:
-
-1. Disease Overview:
-(Explain simply)
-
-2. Future Risks:
-(What can happen if ignored)
-
-3. Treatment:
-(Medication / surgery if needed)
-
-4. Prevention:
-(How to avoid worsening)
-
-5. Doctor Recommendation:
-(Which specialist to visit)
-
-Keep each section short and clear.
+Explain:
+1. Overview
+2. Risks
+3. Treatment
+4. Prevention
+5. Doctor
 """
 
         data = {
-            "model": "openai/gpt-3.5-turbo",  # free/cheap model
+            "model": "openai/gpt-3.5-turbo",
             "messages": [
                 {"role": "user", "content": prompt}
             ]
@@ -55,10 +47,7 @@ Keep each section short and clear.
         print("AI Error:", e)
 
         return f"""
-        Disease: {disease}
+Disease: {disease}
 
-        ⚠️ AI service unavailable.
-
-        👉 Please consult an ophthalmologist.
-        👉 Maintain regular eye checkups.
-        """
+⚠️ AI unavailable. Please consult a doctor.
+"""

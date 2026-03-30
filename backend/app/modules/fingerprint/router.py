@@ -34,8 +34,7 @@ async def predict_fingerprint(file: UploadFile = File(...)):
 
         return {
             "success": True,
-            "blood_group": result["blood_group"],
-            "confidence": result["confidence"]
+            "prediction": result
         }
 
     except Exception as e:

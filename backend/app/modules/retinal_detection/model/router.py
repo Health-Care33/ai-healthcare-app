@@ -5,14 +5,16 @@ from fastapi import APIRouter, UploadFile, File
 from app.modules.retinal_detection.model.predictor import predict_retinal_disease
 from app.modules.retinal_detection.ai_helper import get_ai_medical_report
 from app.database.mongodb import prediction_collection
-from app.modules.retinal_detection.router import router as retinal_router
-router = APIRouter(tags=["Retina Detection"])
+
+# ❌ REMOVE circular import
+
+router = APIRouter(tags=["Retinal Detection"])
 
 UPLOAD_DIR = "uploads/retina"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-@router.post("/retinal-detection")
+@router.post("/scan")
 async def scan_retina(file: UploadFile = File(...)):
 
     file_path = f"{UPLOAD_DIR}/{file.filename}"
@@ -20,22 +22,22 @@ async def scan_retina(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # 🔥 AI Prediction
+    # 🔥 Prediction
     result = predict_retinal_disease(file_path)
 
-    # ❌ INVALID IMAGE HANDLE
     if "error" in result:
         return {
+            "success": False,
             "error": result["error"]
         }
 
-    # 🔥 AI MEDICAL REPORT
+    # 🔥 AI Report
     ai_report = get_ai_medical_report(
         result["disease"],
         result["confidence"]
     )
 
-    # 🔥 MongoDB SAVE
+    # 🔥 Save to DB
     try:
         await prediction_collection.insert_one({
             "type": "retina",
@@ -46,8 +48,8 @@ async def scan_retina(file: UploadFile = File(...)):
     except Exception as e:
         print("MongoDB Error:", e)
 
-    # 🔥 FINAL RESPONSE
     return {
+        "success": True,
         "prediction": result,
         "ai_report": ai_report
     }
