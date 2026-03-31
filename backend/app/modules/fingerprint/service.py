@@ -31,4 +31,4 @@ async def process_fingerprint_upload(file, user_id: str):
 
     await db.fingerprint_predictions.insert_one(result_data)
 
-    return prediction
+    return prediction 

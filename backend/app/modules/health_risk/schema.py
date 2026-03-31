@@ -11,4 +11,4 @@ class HealthRiskInput(BaseModel):
     glucose: float
     heart_rate: float
     smoking: int
-    activity: int
+    activity: int 

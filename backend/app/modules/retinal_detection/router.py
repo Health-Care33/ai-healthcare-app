@@ -6,15 +6,13 @@ from app.modules.retinal_detection.model.predictor import predict_retinal_diseas
 from app.modules.retinal_detection.ai_helper import get_ai_medical_report
 from app.database.mongodb import prediction_collection
 
-# ❌ REMOVE circular import
-
-router = APIRouter(tags=["Retinal Detection"])
+router = APIRouter(tags=["Retina Detection"])
 
 UPLOAD_DIR = "uploads/retina"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-@router.post("/scan")
+@router.post("/retinal-detection")
 async def scan_retina(file: UploadFile = File(...)):
 
     file_path = f"{UPLOAD_DIR}/{file.filename}"
@@ -22,22 +20,22 @@ async def scan_retina(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # 🔥 Prediction
+    # 🔥 AI Prediction
     result = predict_retinal_disease(file_path)
 
+    # ❌ INVALID IMAGE HANDLE
     if "error" in result:
         return {
-            "success": False,
             "error": result["error"]
         }
 
-    # 🔥 AI Report
+    # 🔥 AI MEDICAL REPORT
     ai_report = get_ai_medical_report(
         result["disease"],
         result["confidence"]
     )
 
-    # 🔥 Save to DB
+    # 🔥 MongoDB SAVE
     try:
         await prediction_collection.insert_one({
             "type": "retina",
@@ -48,8 +46,8 @@ async def scan_retina(file: UploadFile = File(...)):
     except Exception as e:
         print("MongoDB Error:", e)
 
+    # 🔥 FINAL RESPONSE
     return {
-        "success": True,
         "prediction": result,
         "ai_report": ai_report
-    }
+    } 

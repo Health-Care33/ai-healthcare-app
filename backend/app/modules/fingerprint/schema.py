@@ -12,4 +12,4 @@ class FingerprintPredictionDB(BaseModel):
     user_id: str
     blood_group: str
     confidence: float
-    image_path: Optional[str]
+    image_path: Optional[str] 

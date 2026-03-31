@@ -1,40 +1,46 @@
-import os
 from groq import Groq
+import os
+from dotenv import load_dotenv
+
+# load env variables
+load_dotenv()
+
+# secure client
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 
-def get_client():
-    api_key = os.getenv("GROQ_API_KEY")
-
-    if not api_key:
-        raise Exception("GROQ_API_KEY not set")
-
-    return Groq(api_key=api_key)
-
+# ---------------- AI ANALYSIS FUNCTION ---------------- #
 
 def analyze_medical_report(report_text: str, question: str):
 
-    try:
-        client = get_client()
+    prompt = f"""
+You are an expert medical AI assistant.
 
-        prompt = f"""
+A user uploaded a medical report. The OCR extracted text is below.
+
 Medical Report:
 {report_text}
 
-Question:
+User Question:
 {question}
 
-Explain in simple terms for a patient.
+Instructions:
+- Explain in simple language
+- If values are abnormal explain possible meaning
+- Do NOT give dangerous medical advice
+- Suggest consulting a doctor if needed
 """
 
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
-            max_tokens=800
-        )
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": "You are a helpful medical AI assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2,
+        max_tokens=800
+    )
 
-        return response.choices[0].message.content
-
-    except Exception as e:
-        print(f"❌ GROQ ERROR: {e}")
-        return f"AI Error: {str(e)}"
+    return response.choices[0].message.content

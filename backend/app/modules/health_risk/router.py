@@ -5,19 +5,12 @@ from app.modules.health_risk.service import save_prediction
 
 router = APIRouter()
 
-
 @router.post("/predict")
 async def predict_risk(data: HealthRiskInput):
 
     result = predict_health_risk(data)
 
-    # ❌ Agar model fail hua toh clear error return karo
-    if "error" in result:
-        return {
-            "success": False,
-            "error": result["error"]
-        }
-
+    # temporary user id
     user_id = "demo_user"
 
     await save_prediction(
@@ -29,4 +22,4 @@ async def predict_risk(data: HealthRiskInput):
     return {
         "success": True,
         "prediction": result
-    }
+    } 

@@ -1,13 +1,13 @@
-import os
 import requests
+import os
+from dotenv import load_dotenv
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")  # ✅ FIXED
+# load env
+load_dotenv()
 
+API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 def get_ai_medical_report(disease, confidence):
-
-    if not API_KEY:
-        return "⚠️ AI service not configured."
 
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
@@ -20,15 +20,28 @@ def get_ai_medical_report(disease, confidence):
         prompt = f"""
 You are a professional eye specialist.
 
+Patient has:
 Disease: {disease}
 Confidence: {confidence}%
 
-Explain:
-1. Overview
-2. Risks
-3. Treatment
-4. Prevention
-5. Doctor
+Give response in this EXACT format:
+
+1. Disease Overview:
+(Explain simply)
+
+2. Future Risks:
+(What can happen if ignored)
+
+3. Treatment:
+(Medication / surgery if needed)
+
+4. Prevention:
+(How to avoid worsening)
+
+5. Doctor Recommendation:
+(Which specialist to visit)
+
+Keep each section short and clear.
 """
 
         data = {
@@ -47,7 +60,10 @@ Explain:
         print("AI Error:", e)
 
         return f"""
-Disease: {disease}
+        Disease: {disease}
 
-⚠️ AI unavailable. Please consult a doctor.
-"""
+        ⚠️ AI service unavailable.
+
+        👉 Please consult an ophthalmologist.
+        👉 Maintain regular eye checkups.
+        """
