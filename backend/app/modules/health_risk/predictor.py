@@ -1,34 +1,25 @@
+import os
 import joblib
 import numpy as np
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "model" / "health_risk_model.pkl"
+BASE_DIR = os.path.dirname(__file__)
+MODEL_PATH = os.path.join(BASE_DIR, "model", "health_risk_model.pkl")
 
-# Load trained model
-model = joblib.load(MODEL_PATH)
+# ❌ remove global load
+model = None
+
+def load_model():
+    global model
+    if model is None:
+        model = joblib.load(MODEL_PATH)
+    return model
 
 
 def predict_health_risk(data):
 
-    features = np.array([[
-        data.age,
-        data.gender,
-        data.bmi,
-        data.blood_pressure,
-        data.cholesterol,
-        data.glucose,
-        data.heart_rate,
-        data.smoking,
-        data.activity
-    ]])
+    model = load_model()
 
-    prediction = model.predict(features)[0]
-    probability = model.predict_proba(features)[0][1]
+    input_data = np.array([data])
+    prediction = model.predict(input_data)
 
-    risk_level = "High Risk" if prediction == 1 else "Low Risk"
-
-    return {
-        "risk_level": risk_level,
-        "probability": float(probability)
-    } 
+    return prediction[0]
