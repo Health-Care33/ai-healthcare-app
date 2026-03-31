@@ -4,26 +4,27 @@ import tensorflow as tf
 import json
 import os
 
-# ---------- SAFE PATH SETUP ----------
-
 BASE_DIR = os.path.dirname(__file__)
 
 MODEL_PATH = os.path.join(BASE_DIR, "model", "fingerprint_bloodgroup_model.h5")
 CLASS_PATH = os.path.join(BASE_DIR, "model", "class_indices.json")
 
-# ---------- LOAD MODEL (FIXED) ----------
+# ❌ REMOVE global model load
+model = None
 
-model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
-# ---------- LOAD CLASS INDICES ----------
-
+# load class indices
 with open(CLASS_PATH, "r") as f:
     class_indices = json.load(f)
 
 CLASS_NAMES = {v: k for k, v in class_indices.items()}
 
 
-# ---------- PREDICTION FUNCTION ----------
+def load_model():
+    global model
+    if model is None:
+        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+    return model
+
 
 def predict_blood_group(image_path):
 
@@ -40,6 +41,9 @@ def predict_blood_group(image_path):
     img = cv2.resize(img, (128, 128))
     img = img / 255.0
     img = img.reshape(1, 128, 128, 1)
+
+    # ✅ load model only when needed
+    model = load_model()
 
     prediction = model.predict(img)
 
