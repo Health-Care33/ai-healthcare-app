@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from keras.models import load_model   # ✅ use keras
+from keras.models import load_model
 from keras.preprocessing import image
 
 model = None
@@ -26,11 +26,13 @@ def load_retinal_model():
             print("🔄 Loading retinal model...")
             print("MODEL PATH:", model_path)
 
+            # 🔥 DEBUG (VERY IMPORTANT)
+            print("FILES IN MODEL DIR:", os.listdir(BASE_DIR))
+
             if not os.path.exists(model_path):
                 print("❌ MODEL FILE NOT FOUND")
                 return None
 
-            # ✅ safe load
             model = load_model(model_path, compile=False)
 
             print("✅ Retinal model loaded successfully")
@@ -71,7 +73,7 @@ def predict_retinal_disease(img_path):
         # 🔥 TOP 2 PREDICTIONS
         top_2_indices = predictions.argsort()[-2:][::-1]
 
-        result = {
+        return {
             "disease": class_names[top_index],
             "confidence": round(float(max_conf * 100), 2),
             "all_predictions": {
@@ -86,8 +88,6 @@ def predict_retinal_disease(img_path):
                 for i in top_2_indices
             ]
         }
-
-        return result
 
     except Exception as e:
         return {

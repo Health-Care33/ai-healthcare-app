@@ -2,9 +2,10 @@ import numpy as np
 import cv2
 import json
 import os
-from keras.models import load_model   # ✅ IMPORTANT CHANGE
+from keras.models import load_model as keras_load_model   # ✅ rename to avoid conflict
 
-BASE_DIR = os.path.dirname(__file__)
+# ✅ FIX: absolute path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.join(BASE_DIR, "model", "fingerprint_bloodgroup_model.h5")
 CLASS_PATH = os.path.join(BASE_DIR, "model", "class_indices.json")
@@ -18,19 +19,22 @@ with open(CLASS_PATH, "r") as f:
 CLASS_NAMES = {v: k for k, v in class_indices.items()}
 
 
-def load_model():
+def load_fingerprint_model():
     global model
     if model is None:
         try:
             print("🔄 Loading fingerprint model...")
             print("MODEL PATH:", MODEL_PATH)
 
+            # 🔥 DEBUG
+            print("FILES IN MODEL DIR:", os.listdir(os.path.join(BASE_DIR, "model")))
+
             if not os.path.exists(MODEL_PATH):
                 print("❌ MODEL FILE NOT FOUND")
                 return None
 
-            # ✅ FIX: use keras instead of tensorflow
-            model = load_model(MODEL_PATH, compile=False)
+            # ✅ FIX: correct loader
+            model = keras_load_model(MODEL_PATH, compile=False)
 
             print("✅ MODEL LOADED SUCCESS")
 
@@ -43,7 +47,7 @@ def load_model():
 
 def predict_blood_group(image_path):
 
-    model = load_model()
+    model = load_fingerprint_model()
 
     if model is None:
         return {

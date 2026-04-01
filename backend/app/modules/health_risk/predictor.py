@@ -2,18 +2,23 @@ import os
 import joblib
 import numpy as np
 
-BASE_DIR = os.path.dirname(__file__)
+# ✅ FIX: absolute path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 MODEL_PATH = os.path.join(BASE_DIR, "model", "health_risk_model.pkl")
 
 model = None
 
 
-def load_model():
+def load_health_model():
     global model
     if model is None:
         try:
             print("🔄 Loading health risk model...")
             print("MODEL PATH:", MODEL_PATH)
+
+            # 🔥 DEBUG
+            print("FILES IN MODEL DIR:", os.listdir(os.path.join(BASE_DIR, "model")))
 
             if not os.path.exists(MODEL_PATH):
                 print("❌ MODEL FILE NOT FOUND")
@@ -32,7 +37,7 @@ def load_model():
 
 def predict_health_risk(data):
 
-    model = load_model()
+    model = load_health_model()
 
     if model is None:
         return {"error": "Health risk model not loaded"}
