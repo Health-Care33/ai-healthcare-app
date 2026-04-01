@@ -8,7 +8,7 @@ model = None
 
 try:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(BASE_DIR, "retinal_model.keras")
+    model_path = os.path.join(BASE_DIR, "retinal_model.h5")
 
     model = load_model(model_path)
     print("✅ Retinal model loaded successfully")

@@ -9,7 +9,6 @@ BASE_DIR = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(BASE_DIR, "model", "fingerprint_bloodgroup_model.h5")
 CLASS_PATH = os.path.join(BASE_DIR, "model", "class_indices.json")
 
-# ❌ REMOVE global model load
 model = None
 
 # load class indices
@@ -22,19 +21,37 @@ CLASS_NAMES = {v: k for k, v in class_indices.items()}
 def load_model():
     global model
     if model is None:
-        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        try:
+            print("Loading fingerprint model...")
+            print("MODEL PATH:", MODEL_PATH)
+
+            if not os.path.exists(MODEL_PATH):
+                print("❌ MODEL FILE NOT FOUND")
+                return None
+
+            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+            print("✅ MODEL LOADED SUCCESS")
+
+        except Exception as e:
+            print("❌ MODEL LOAD ERROR:", e)
+            return None
+
     return model
 
 
 def predict_blood_group(image_path):
 
+    model = load_model()
+
+    if model is None:
+        return {
+            "error": "Fingerprint model not loaded"
+        }
+
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
     if img is None:
         return {
-            "blood_group": "Unknown",
-            "confidence": 0,
-            "top_predictions": [],
             "error": "Image not readable"
         }
 
@@ -42,26 +59,13 @@ def predict_blood_group(image_path):
     img = img / 255.0
     img = img.reshape(1, 128, 128, 1)
 
-    # ✅ load model only when needed
-    model = load_model()
-
     prediction = model.predict(img)
 
     class_index = int(np.argmax(prediction))
     blood_group = CLASS_NAMES[class_index]
     confidence = float(np.max(prediction))
 
-    top3 = prediction[0].argsort()[-3:][::-1]
-
-    top_predictions = []
-    for i in top3:
-        top_predictions.append({
-            "blood_group": CLASS_NAMES[int(i)],
-            "confidence": float(prediction[0][i])
-        })
-
     return {
         "blood_group": blood_group,
-        "confidence": confidence,
-        "top_predictions": top_predictions
+        "confidence": confidence
     }
