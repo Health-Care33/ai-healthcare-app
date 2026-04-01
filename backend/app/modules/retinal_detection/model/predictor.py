@@ -1,21 +1,9 @@
 import numpy as np
 import os
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+from keras.models import load_model   # ✅ use keras
+from keras.preprocessing import image
 
-# ✅ LOAD MODEL (SAFE + CORRECT PATH)
 model = None
-
-try:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(BASE_DIR, "retinal_model.h5")
-
-    model = load_model(model_path)
-    print("✅ Retinal model loaded successfully")
-
-except Exception as e:
-    print("❌ Model loading failed:", e)
-
 
 # ✅ CLASS NAMES
 class_names = [
@@ -28,10 +16,38 @@ class_names = [
 ]
 
 
+def load_retinal_model():
+    global model
+    if model is None:
+        try:
+            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(BASE_DIR, "retinal_model.keras")
+
+            print("🔄 Loading retinal model...")
+            print("MODEL PATH:", model_path)
+
+            if not os.path.exists(model_path):
+                print("❌ MODEL FILE NOT FOUND")
+                return None
+
+            # ✅ safe load
+            model = load_model(model_path, compile=False)
+
+            print("✅ Retinal model loaded successfully")
+
+        except Exception as e:
+            print("❌ Model loading failed:", e)
+            return None
+
+    return model
+
+
 def predict_retinal_disease(img_path):
 
+    model = load_retinal_model()
+
     if model is None:
-        return {"error": "Model not loaded"}
+        return {"error": "Retinal model not loaded"}
 
     try:
         # ✅ IMAGE PREPROCESSING
@@ -45,14 +61,14 @@ def predict_retinal_disease(img_path):
         max_conf = np.max(predictions)
         top_index = np.argmax(predictions)
 
-        # 🔥 INVALID IMAGE CHECK (Improved)
+        # 🔥 INVALID IMAGE CHECK
         if max_conf < 0.4:
             return {
                 "error": "Invalid Retina Image",
                 "confidence": round(float(max_conf * 100), 2)
             }
 
-        # 🔥 TOP 2 PREDICTIONS (SMART FEATURE)
+        # 🔥 TOP 2 PREDICTIONS
         top_2_indices = predictions.argsort()[-2:][::-1]
 
         result = {
@@ -77,4 +93,4 @@ def predict_retinal_disease(img_path):
         return {
             "error": "Prediction failed",
             "details": str(e)
-        } 
+        }

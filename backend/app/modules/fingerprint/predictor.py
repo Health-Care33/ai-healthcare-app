@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
-import tensorflow as tf
 import json
 import os
+from keras.models import load_model   # ✅ IMPORTANT CHANGE
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -22,14 +22,16 @@ def load_model():
     global model
     if model is None:
         try:
-            print("Loading fingerprint model...")
+            print("🔄 Loading fingerprint model...")
             print("MODEL PATH:", MODEL_PATH)
 
             if not os.path.exists(MODEL_PATH):
                 print("❌ MODEL FILE NOT FOUND")
                 return None
 
-            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+            # ✅ FIX: use keras instead of tensorflow
+            model = load_model(MODEL_PATH, compile=False)
+
             print("✅ MODEL LOADED SUCCESS")
 
         except Exception as e:
