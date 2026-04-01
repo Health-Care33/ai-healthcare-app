@@ -6,7 +6,7 @@ pymongo==4.6.1
 motor==3.3.2
 
 # ✅ ML stable versions
-numpy==1.23.5
+numpy==1.24.3
 pandas==1.5.3
 scikit-learn==1.2.2
 scipy==1.10.1
@@ -30,10 +30,9 @@ email-validator==2.1.0.post1
 requests==2.31.0
 httpx==0.27.0
 
-# 🔥 TensorFlow stable combo
-tensorflow-cpu==2.13.0 ✅
-keras==2.13.1 ✅
-
+# 🔥 TensorFlow + Keras (for .keras model)
+tensorflow-cpu==2.13.0
+keras==2.13.1
 
 typing_extensions==4.10.0
 itsdangerous==2.1.2
