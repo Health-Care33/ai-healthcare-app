@@ -2,9 +2,9 @@ import numpy as np
 import cv2
 import json
 import os
-from keras.models import load_model as keras_load_model   # ✅ rename to avoid conflict
+from tensorflow.keras.models import load_model as keras_load_model   # ✅ FIX
 
-# ✅ FIX: absolute path
+# ✅ absolute path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.join(BASE_DIR, "model", "fingerprint_bloodgroup_model.h5")
@@ -33,7 +33,7 @@ def load_fingerprint_model():
                 print("❌ MODEL FILE NOT FOUND")
                 return None
 
-            # ✅ FIX: correct loader
+            # ✅ correct loader
             model = keras_load_model(MODEL_PATH, compile=False)
 
             print("✅ MODEL LOADED SUCCESS")
