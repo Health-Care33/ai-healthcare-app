@@ -8,11 +8,15 @@ async def save_prediction(user_id, input_data, result):
 
     document = {
         "user_id": user_id,
+        "type": "health_risk",
         "input_data": input_data,
         "prediction": result,
         "created_at": datetime.utcnow()
     }
 
-    await collection.insert_one(document)
+    try:
+        await collection.insert_one(document)
+    except Exception as e:
+        print("⚠️ MongoDB Error:", e)
 
-    return document 
+    return document

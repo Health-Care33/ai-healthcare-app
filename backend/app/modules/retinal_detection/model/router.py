@@ -1,6 +1,7 @@
 import os
 import shutil
-from fastapi import APIRouter, UploadFile, File
+import uuid
+from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from app.modules.retinal_detection.model.predictor import predict_retinal_disease
 from app.modules.retinal_detection.ai_helper import get_ai_medical_report
@@ -15,39 +16,51 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/retinal-detection")
 async def scan_retina(file: UploadFile = File(...)):
 
-    file_path = f"{UPLOAD_DIR}/{file.filename}"
+    # ✅ File validation
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files allowed")
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # ✅ Unique file name (important)
+    unique_name = f"{uuid.uuid4()}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
 
-    # 🔥 AI Prediction
-    result = predict_retinal_disease(file_path)
-
-    # ❌ INVALID IMAGE HANDLE
-    if "error" in result:
-        return {
-            "error": result["error"]
-        }
-
-    # 🔥 AI MEDICAL REPORT
-    ai_report = get_ai_medical_report(
-        result["disease"],
-        result["confidence"]
-    )
-
-    # 🔥 MongoDB SAVE
     try:
-        await prediction_collection.insert_one({
-            "type": "retina",
-            "file": file.filename,
+        # ✅ Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 🔥 Prediction
+        result = predict_retinal_disease(file_path)
+
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+
+        # 🔥 AI Report
+        ai_report = get_ai_medical_report(
+            result["disease"],
+            result["confidence"]
+        )
+
+        # 🔥 MongoDB Save (safe)
+        try:
+            await prediction_collection.insert_one({
+                "type": "retina",
+                "file": unique_name,
+                "prediction": result,
+                "ai_report": ai_report
+            })
+        except Exception as db_error:
+            print("⚠️ MongoDB Error:", db_error)
+
+        return {
             "prediction": result,
             "ai_report": ai_report
-        })
-    except Exception as e:
-        print("MongoDB Error:", e)
+        }
 
-    # 🔥 FINAL RESPONSE
-    return {
-        "prediction": result,
-        "ai_report": ai_report
-    } 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        # ✅ Cleanup file (VERY IMPORTANT)
+        if os.path.exists(file_path):
+            os.remove(file_path)

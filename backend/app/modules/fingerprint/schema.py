@@ -1,15 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
+# 🔥 API RESPONSE SCHEMA
 class FingerprintPredictionResponse(BaseModel):
-    blood_group: str
-    confidence: float
-    message: str
+    success: bool = Field(..., example=True)
+    blood_group: str = Field(..., example="A+")
+    confidence: float = Field(..., example=92.5)
+    message: str = Field(..., example="Prediction successful")
 
 
+# 🔥 DB SCHEMA
 class FingerprintPredictionDB(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
+    type: str = "fingerprint"
     blood_group: str
     confidence: float
-    image_path: Optional[str] 
+    file: Optional[str] = None

@@ -1,6 +1,9 @@
 import os
 import shutil
+import uuid
 from datetime import datetime
+from fastapi import HTTPException
+
 from app.database.mongodb import db
 from app.modules.fingerprint.predictor import predict_blood_group
 
@@ -9,26 +12,46 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 async def process_fingerprint_upload(file, user_id: str):
+    # ✅ validate file
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files allowed")
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    # ✅ safe filename
+    unique_name = f"{user_id}_{uuid.uuid4()}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
 
-    filename = f"{user_id}_{timestamp}_{file.filename}"
+    try:
+        # ✅ save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    file_path = os.path.join(UPLOAD_DIR, filename)
+        # 🔥 prediction
+        prediction = predict_blood_group(file_path)
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        if "error" in prediction:
+            raise HTTPException(status_code=400, detail=prediction["error"])
 
-    prediction = predict_blood_group(file_path)
+        result_data = {
+            "user_id": user_id,
+            "type": "fingerprint",
+            "blood_group": prediction["blood_group"],
+            "confidence": prediction["confidence"],
+            "file": unique_name,
+            "created_at": datetime.utcnow()
+        }
 
-    result_data = {
-        "user_id": user_id,
-        "blood_group": prediction["blood_group"],
-        "confidence": prediction["confidence"],
-        "image_path": file_path,
-        "created_at": datetime.utcnow()
-    }
+        # 🔥 DB save (safe)
+        try:
+            await db.fingerprint_predictions.insert_one(result_data)
+        except Exception as db_error:
+            print("⚠️ MongoDB Error:", db_error)
 
-    await db.fingerprint_predictions.insert_one(result_data)
+        return prediction
 
-    return prediction 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        # ✅ cleanup file (optional: agar store nahi karna hai permanently)
+        if os.path.exists(file_path):
+            os.remove(file_path)
