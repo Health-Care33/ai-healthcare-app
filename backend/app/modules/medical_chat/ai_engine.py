@@ -16,7 +16,7 @@ else:
     print("⚠️ GROQ API KEY NOT FOUND")
 
 
-# ---------------- AI ANALYSIS FUNCTION ---------------- #
+# ---------------- CORE AI FUNCTION ---------------- #
 
 def analyze_medical_report(report_text: str, question: str):
 
@@ -53,7 +53,6 @@ Instructions:
             max_tokens=800,
         )
 
-        # ✅ safe parsing
         if response and response.choices:
             return response.choices[0].message.content
 
@@ -63,6 +62,17 @@ Instructions:
         print("⚠️ GROQ ERROR:", e)
         return fallback_response()
 
+
+# ---------------- WRAPPER (IMPORTANT FIX) ---------------- #
+
+def medical_ai_analysis(report_text: str, question: str):
+    """
+    Wrapper function to match router import
+    """
+    return analyze_medical_report(report_text, question)
+
+
+# ---------------- FALLBACK ---------------- #
 
 def fallback_response():
     return """
