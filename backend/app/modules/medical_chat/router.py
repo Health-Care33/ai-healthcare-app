@@ -44,8 +44,10 @@ async def ask_medical_ai(data: ChatRequest):
 async def ai_diagnosis(data: DiagnosisRequest):
 
     try:
+        # 🔥 DEFAULT QUESTION FIX
         diagnosis = medical_ai_analysis(
-            report_text=data.report_text
+            report_text=data.report_text,
+            question="Provide a medical diagnosis for this report"
         )
 
         return {

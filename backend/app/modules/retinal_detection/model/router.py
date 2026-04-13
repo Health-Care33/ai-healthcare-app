@@ -9,7 +9,10 @@ from app.database.mongodb import prediction_collection
 
 router = APIRouter(tags=["Retina Detection"])
 
-UPLOAD_DIR = "uploads/retina"
+# ✅ Absolute path (Render safe)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "retina")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -20,7 +23,7 @@ async def scan_retina(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files allowed")
 
-    # ✅ Unique file name (important)
+    # ✅ Unique file name
     unique_name = f"{uuid.uuid4()}_{file.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_name)
 
@@ -61,6 +64,6 @@ async def scan_retina(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # ✅ Cleanup file (VERY IMPORTANT)
+        # ✅ Cleanup file (IMPORTANT for Render storage)
         if os.path.exists(file_path):
             os.remove(file_path)

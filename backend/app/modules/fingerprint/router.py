@@ -8,7 +8,10 @@ from app.database.mongodb import prediction_collection
 
 router = APIRouter(tags=["Fingerprint"])
 
-UPLOAD_DIR = "uploads/fingerprints"
+# ✅ Absolute path (Render safe)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "fingerprints")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -58,6 +61,6 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # ✅ cleanup
+        # ✅ cleanup (VERY IMPORTANT for Render)
         if os.path.exists(file_path):
             os.remove(file_path)

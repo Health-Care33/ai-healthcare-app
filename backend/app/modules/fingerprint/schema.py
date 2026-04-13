@@ -5,7 +5,7 @@ from typing import Optional
 # 🔥 API RESPONSE SCHEMA
 class FingerprintPredictionResponse(BaseModel):
     success: bool = Field(..., example=True)
-    blood_group: str = Field(..., example="A+")
+    blood_group: str = Field(..., example="A")  # ✅ fixed
     confidence: float = Field(..., example=92.5)
     message: str = Field(..., example="Prediction successful")
 

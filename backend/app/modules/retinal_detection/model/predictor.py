@@ -7,13 +7,16 @@ import threading
 model = None
 model_lock = threading.Lock()
 
+# ✅ UPDATED (8 classes - jo tune train kiya)
 class_names = [
-    "Diabetic",
     "AMD",
-    "Macular_Hole",
-    "Drusen",
-    "Optic_Disc_Cupping",
-    "Tessellation"
+    "CNV",
+    "CSR",
+    "DME",
+    "DR",
+    "DRUSEN",
+    "MH",
+    "NORMAL"
 ]
 
 
@@ -25,7 +28,9 @@ def load_retinal_model():
             if model is None:
                 try:
                     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-                    model_path = os.path.join(BASE_DIR, "retinal_model.keras")
+                    
+                    # ✅ FIXED (.h5 model)
+                    model_path = os.path.join(BASE_DIR, "retinal_model.h5")
 
                     print("🔄 Loading retinal model...")
                     print("MODEL PATH:", model_path)

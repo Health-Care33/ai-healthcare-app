@@ -2,6 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import os
+from dotenv import load_dotenv
+
+# 🔥 LOAD ENV (VERY IMPORTANT)
+load_dotenv()
 
 # 🔥 MODEL PRELOAD IMPORTS
 from app.modules.retinal_detection.model.predictor import load_retinal_model
@@ -34,22 +38,31 @@ app = FastAPI(
 async def startup_event():
     print("🚀 Server started successfully")
 
-    # 🔥 PRELOAD ALL MODELS (VERY IMPORTANT)
-    load_retinal_model()
-    print("✅ Retinal model preloaded")
+    # 🔥 PRELOAD ALL MODELS (SAFE LOAD)
+    try:
+        load_retinal_model()
+        print("✅ Retinal model preloaded")
+    except Exception as e:
+        print("❌ Retinal model error:", e)
 
-    load_fingerprint_model()
-    print("✅ Fingerprint model preloaded")
+    try:
+        load_fingerprint_model()
+        print("✅ Fingerprint model preloaded")
+    except Exception as e:
+        print("❌ Fingerprint model error:", e)
 
-    load_health_model()
-    print("✅ Health Risk model preloaded")
+    try:
+        load_health_model()
+        print("✅ Health Risk model preloaded")
+    except Exception as e:
+        print("❌ Health model error:", e)
 
 
 # ----------- CORS -----------
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ change in production
+    allow_origins=["*"],  # ⚠️ production me restrict karna
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

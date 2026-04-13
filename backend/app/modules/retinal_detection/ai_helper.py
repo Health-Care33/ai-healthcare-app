@@ -49,23 +49,29 @@ Keep each section short and clear.
 """
 
         data = {
-            "model": "openai/gpt-4o-mini",  # 🔥 updated model
+            "model": "openai/gpt-4o-mini",
             "messages": [
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            "temperature": 0.7  # ✅ stable output
         }
 
         response = requests.post(
             url,
             headers=headers,
             json=data,
-            timeout=10  # ✅ prevent hanging
+            timeout=10
         )
+
+        # ✅ HTTP error check
+        if response.status_code != 200:
+            print("⚠️ API Status Error:", response.status_code, response.text)
+            return fallback_response(disease)
 
         result = response.json()
 
         # ✅ safe parsing
-        if "choices" in result:
+        if "choices" in result and len(result["choices"]) > 0:
             return result["choices"][0]["message"]["content"]
 
         else:

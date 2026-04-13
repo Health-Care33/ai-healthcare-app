@@ -7,7 +7,10 @@ from fastapi import HTTPException
 from app.database.mongodb import db
 from app.modules.fingerprint.predictor import predict_blood_group
 
-UPLOAD_DIR = "uploads/fingerprints"
+# ✅ Absolute path (Render safe)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "fingerprints")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -52,6 +55,6 @@ async def process_fingerprint_upload(file, user_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # ✅ cleanup file (optional: agar store nahi karna hai permanently)
+        # ✅ cleanup (Render storage safe)
         if os.path.exists(file_path):
             os.remove(file_path)
