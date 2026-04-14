@@ -8,3 +8,4 @@ class User(BaseModel):
     password: str
     google_id: Optional[str] = None
     created_at: datetime = datetime.utcnow()
+    
