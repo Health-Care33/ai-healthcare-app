@@ -28,7 +28,8 @@ export default function AdminAnalytics() {
 
       try {
 
-        const res = await axios.get("http://127.0.0.1:8000/api/admin/analytics")
+       const res = await axios.get("https://ai-healthcare-backend-psnj.onrender.com/api/admin/analytics")
+
 
         setData(res.data)
 

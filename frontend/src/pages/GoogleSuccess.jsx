@@ -1,46 +1,34 @@
-import { useEffect } from "react"
+import { useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom"
+import { AuthContext } from "../context/AuthContext"
 
 export default function GoogleSuccess(){
 
   const navigate = useNavigate()
+  const { loadUser } = useContext(AuthContext)
 
   useEffect(()=>{
 
     const params = new URLSearchParams(window.location.search)
-
     const token = params.get("token")
 
-    if(token){
+    const handleAuth = async () => {
 
-      localStorage.setItem("token",token)
+      if(token){
+        localStorage.setItem("token", token)
 
-      setTimeout(()=>{
+        await loadUser()   // ✅ IMPORTANT FIX
 
         navigate("/dashboard")
-
-      },2000)
+      }
 
     }
+
+    handleAuth()
 
   },[])
 
   return(
-
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-red-500 to-yellow-500">
-
-      <div className="bg-white p-10 rounded-2xl shadow-xl text-center">
-
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-
-        <h2 className="text-xl font-semibold">
-          Signing in with Google...
-        </h2>
-
-      </div>
-
-    </div>
-
+    <div>Signing in...</div>
   )
-
 }

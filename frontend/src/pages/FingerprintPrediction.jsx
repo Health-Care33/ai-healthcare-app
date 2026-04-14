@@ -45,9 +45,10 @@ export default function FingerprintPrediction(){
     try{
 
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/fingerprint/predict-blood-group",
-        formData
-      )
+  "https://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
+  formData
+)
+
 
       setResult(res.data)
 
@@ -182,7 +183,8 @@ export default function FingerprintPrediction(){
               </p>
 
               <p className="mb-3">
-                Confidence: {(result.confidence * 100).toFixed(2)}%
+                Confidence: {result.confidence.toFixed(2)}%
+
               </p>
 
               {/* Confidence Bar */}
@@ -191,7 +193,7 @@ export default function FingerprintPrediction(){
 
                 <motion.div
                   initial={{width:0}}
-                  animate={{width:`${result.confidence * 100}%`}}
+                 animate={{width:`${result.confidence}%`}}
                   transition={{duration:1}}
                   className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
                 />

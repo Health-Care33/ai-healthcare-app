@@ -26,7 +26,7 @@ export default function Login(){
 
     try{
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/auth/login",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/auth/login",
         { email, password }
       )
 
@@ -34,7 +34,7 @@ export default function Login(){
       localStorage.setItem("token", token)
 
       const profile = await axios.get(
-        "http://127.0.0.1:8000/api/auth/profile",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/auth/profile",
         {
           headers:{ Authorization:`Bearer ${token}` }
         }
@@ -51,8 +51,7 @@ export default function Login(){
   }
 
   const handleGoogleLogin = ()=>{
-    window.location.href =
-      "http://127.0.0.1:8000/api/auth/google/login"
+    window.location.href = "https://ai-healthcare-backend-psnj.onrender.com/api/auth/google/login"
   }
 
   return(

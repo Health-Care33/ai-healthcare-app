@@ -1,5 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import ProtectedRoute from "./components/ProtectedRoute"
 import Navbar from "./components/Navbar"
 import MainLayout from "./components/MainLayout"
 
@@ -38,7 +39,14 @@ function App() {
         <Route element={<MainLayout />}>
 
           {/* ❌ REMOVE Dashboard from "/" */}
-          <Route path="/dashboard" element={<Dashboard />} />
+         <Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
 
           <Route path="/fingerprint" element={<FingerprintPrediction />} />
           <Route path="/medical-report-ai" element={<MedicalReportAI />} />

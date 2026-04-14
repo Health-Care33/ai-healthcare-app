@@ -21,7 +21,7 @@ export default function BloodDonation() {
       const token = localStorage.getItem("token")
 
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/blood-donation/check",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/blood-donation/check",
         {
           blood_group: bloodGroup
         },

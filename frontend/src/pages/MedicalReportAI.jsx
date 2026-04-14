@@ -26,10 +26,13 @@ export default function MedicalReportAI(){
 
     try{
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/medical-report/upload",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/medical-report/upload",
         formData
       )
-      setReportText(res.data.data.extracted_text)
+
+      // ✅ SAFE ACCESS FIX
+      setReportText(res?.data?.data?.extracted_text || "")
+
     }catch(err){
       console.log(err)
       alert("Upload failed")
@@ -44,22 +47,37 @@ export default function MedicalReportAI(){
       return
     }
 
+    if(!question.trim()){   // ✅ EMPTY QUESTION FIX
+      alert("Please enter a question")
+      return
+    }
+
     setLoading(true)
 
     try{
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/medical-chat/ask",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/medical-chat/ask",
         {
           report_text:reportText,
           question:question
         }
       )
-      setAnswer(res.data.answer)
+
+      const data = res.data
+
+      // ✅ FALLBACK HANDLE FIX
+      if(typeof data === "string"){
+        setAnswer(data)
+      }else{
+        setAnswer(data?.answer || "No response from AI")
+      }
+
     }catch(err){
       console.log(err)
+      alert("Something went wrong")
+    }finally{
+      setLoading(false)   // ✅ LOADING FIX
     }
-
-    setLoading(false)
   }
 
   // Diagnosis
@@ -74,20 +92,30 @@ export default function MedicalReportAI(){
 
     try{
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/medical-chat/diagnose",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/medical-chat/diagnose",
         {
           report_text:reportText
         }
       )
-      setDiagnosis(res.data.diagnosis)
+
+      const data = res.data
+
+      // ✅ FALLBACK HANDLE FIX
+      if(typeof data === "string"){
+        setDiagnosis(data)
+      }else{
+        setDiagnosis(data?.diagnosis || "No diagnosis available")
+      }
+
     }catch(err){
       console.log(err)
+      alert("Something went wrong")
+    }finally{
+      setLoading(false)   // ✅ LOADING FIX
     }
-
-    setLoading(false)
   }
 
-  // ✅ NEW: Download PDF
+  // Download PDF
   const downloadPDF = () => {
 
     const doc = new jsPDF()
@@ -234,7 +262,6 @@ export default function MedicalReportAI(){
           </motion.div>
         )}
 
-        {/* ✅ NEW BUTTON */}
         {(answer || diagnosis) && (
           <button
             onClick={downloadPDF}

@@ -9,14 +9,14 @@ export default function HealthRiskPrediction(){
     name:"",
     email:"",
     age:0,
-    gender:"",
     bmi:0,
     blood_pressure:0,
     cholesterol:0,
     glucose:0,
-    heart_rate:0,
     smoking:0,
-    activity:0
+    physical_activity:0,
+    alcohol:0
+
   })
 
   const [result,setResult] = useState(null)
@@ -45,11 +45,11 @@ export default function HealthRiskPrediction(){
     try{
 
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/health-risk/predict",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/health-risk/predict",
         form
       )
 
-      setResult(res.data.prediction)
+      setResult(res.data.data)
 
     }catch(err){
 
@@ -79,21 +79,20 @@ export default function HealthRiskPrediction(){
     doc.setFontSize(14)
 
     doc.text(`Age: ${form.age}`,20,50)
-    doc.text(`Gender: ${form.gender === 1 ? "Male" : "Female"}`,20,60)
     doc.text(`BMI: ${form.bmi}`,20,70)
     doc.text(`Blood Pressure: ${form.blood_pressure}`,20,80)
     doc.text(`Cholesterol: ${form.cholesterol}`,20,90)
     doc.text(`Glucose: ${form.glucose}`,20,100)
-    doc.text(`Heart Rate: ${form.heart_rate}`,20,110)
     doc.text(`Smoking: ${form.smoking}`,20,120)
-    doc.text(`Activity Level: ${form.activity}`,20,130)
+   doc.text(`Physical Activity: ${form.physical_activity}`,20,130)
+doc.text(`Alcohol: ${form.alcohol}`,20,140)
 
     doc.setFontSize(18)
     doc.text("Prediction Result",20,150)
 
     doc.setFontSize(14)
     doc.text(`Risk Level: ${result.risk_level}`,20,165)
-    doc.text(`Probability: ${result.probability}`,20,175)
+    doc.text(`Probability: ${result.confidence}`,20,175)
 
     doc.save("health_risk_report.pdf")
 
@@ -122,6 +121,14 @@ export default function HealthRiskPrediction(){
               className="border border-white/20 bg-white/20 text-white p-3 rounded-lg"
               onChange={handleChange}
             />
+            <input 
+  type="number" 
+  name="alcohol" 
+  placeholder="Alcohol (0 No / 1 Yes)"
+  className="border border-white/20 bg-white/20 text-white p-3 rounded-lg"
+  onChange={handleChange}
+/>
+
 
             <input type="email" name="email" placeholder="Email Address"
               className="border border-white/20 bg-white/20 text-white p-3 rounded-lg"
@@ -160,17 +167,13 @@ export default function HealthRiskPrediction(){
               onChange={handleChange}
             />
 
-            <input type="number" name="heart_rate" placeholder="Heart Rate"
-              className="border border-white/20 bg-white/20 text-white p-3 rounded-lg"
-              onChange={handleChange}
-            />
 
             <input type="number" name="smoking" placeholder="Smoking (0 No / 1 Yes)"
               className="border border-white/20 bg-white/20 text-white p-3 rounded-lg"
               onChange={handleChange}
             />
 
-            <input type="number" name="activity" placeholder="Activity Level (0-10)"
+            <input type="number" name="physical_activity" placeholder="Activity Level (0-10)"
               className="border border-white/20 bg-white/20 text-white p-3 rounded-lg"
               onChange={handleChange}
             />
@@ -205,9 +208,9 @@ export default function HealthRiskPrediction(){
 
               {/* ✅ PREMIUM FIXED CHART */}
               {(() => {
-                const percentage = result.probability <= 1
-                  ? result.probability * 100
-                  : result.probability
+                const percentage = result.confidence <= 1
+                  ? result.confidence * 100
+                  : result.confidence
 
                 const radius = 50
                 const circumference = 2 * Math.PI * radius
@@ -282,16 +285,16 @@ export default function HealthRiskPrediction(){
               </h3>
 
               <p className="mb-3">
-                Probability: {result.probability}
+                Probability: {result.confidence}
               </p>
 
               <div className="w-full bg-white/20 rounded-full h-4 mb-6">
                 <motion.div
                   initial={{width:0}}
                   animate={{width:`${
-                    result.probability <= 1
-                      ? result.probability * 100
-                      : result.probability
+                    result.confidence <= 1
+                      ? result.confidence * 100
+                      : result.confidence
                   }%`}}
                   transition={{duration:1}}
                   className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"

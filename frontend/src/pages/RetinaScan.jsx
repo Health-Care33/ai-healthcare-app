@@ -73,7 +73,7 @@ formData.append("file",image)
 const token = localStorage.getItem("token")
 
 const resPromise = axios.post(
-"http://127.0.0.1:8000/api/retinal-detection",
+"https://ai-healthcare-backend-psnj.onrender.com/api/retinal-detection",
 formData,
 {
 headers:{ Authorization:`Bearer ${token}` }

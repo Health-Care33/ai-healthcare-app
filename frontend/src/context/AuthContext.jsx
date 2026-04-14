@@ -32,8 +32,14 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    loadUser()
-  }, [])
+
+  const init = async () => {
+    await loadUser()
+  }
+
+  init()
+
+}, [])
 
   return (
     <AuthContext.Provider value={{ user, setUser, loadUser, loading }}>

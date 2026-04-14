@@ -20,7 +20,7 @@ export default function Register(){
 
     try{
       await axios.post(
-        "http://127.0.0.1:8000/api/auth/register",
+        "https://ai-healthcare-backend-psnj.onrender.com/api/auth/register",
         { name, email, password }
       )
       navigate("/login")
@@ -33,7 +33,7 @@ export default function Register(){
 
   const handleGoogleLogin = () => {
     window.location.href =
-      "http://127.0.0.1:8000/api/auth/google/login"
+      "https://ai-healthcare-backend-psnj.onrender.com/api/auth/google/login"
   }
 
   return(
