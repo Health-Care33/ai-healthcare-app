@@ -8,26 +8,37 @@ import requests
 # 🔥 LOAD ENV
 load_dotenv()
 
-# 🔥 DOWNLOAD FUNCTION
+# ---------------- DOWNLOAD FUNCTION ----------------
 def download_model(url, path):
+    # ✅ SAFE: folder auto-create
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
     if not os.path.exists(path):
         print(f"📥 Downloading {path}...")
-        r = requests.get(url, stream=True)
-        with open(path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-        print(f"✅ Download complete: {path}")
+
+        try:
+            r = requests.get(url, stream=True, timeout=60)  # ✅ timeout added
+
+            with open(path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+
+            print(f"✅ Download complete: {path}")
+
+        except Exception as e:
+            print("❌ Download failed:", e)
+
     else:
         print(f"⚡ Model already exists: {path}")
 
-# 🔥 MODEL IMPORTS
+
+# ---------------- MODEL IMPORTS ----------------
 from app.modules.retinal_detection.model.predictor import load_retinal_model
 from app.modules.fingerprint.predictor import load_fingerprint_model
 from app.modules.health_risk.predictor import load_health_model
 
-# ----------- ROUTE IMPORTS -----------
-
+# ---------------- ROUTES ----------------
 from app.routes.auth_routes import router as auth_router
 from app.routes.analytics import router as analytics_router
 
@@ -38,33 +49,27 @@ from app.modules.health_risk.router import router as health_risk_router
 from app.modules.blood_donation.router import router as blood_donation_router
 from app.modules.retinal_detection.model.router import router as retinal_router
 
-# ----------- FASTAPI APP -----------
 
+# ---------------- FASTAPI APP ----------------
 app = FastAPI(
     title="AI Based Healthcare System",
     description="Full Stack AI Healthcare Backend using FastAPI",
     version="1.0.0"
 )
 
-# ----------- STARTUP EVENT -----------
 
+# ---------------- STARTUP EVENT ----------------
 @app.on_event("startup")
 async def startup_event():
     print("🚀 Server started successfully")
 
-    # 🔥 DOWNLOAD VALIDATION MODELS ONLY
-
-    # ✅ Fingerprint Validation Model
+    # 🔥 DOWNLOAD MODEL (SAFE PATH FIXED)
     download_model(
         "https://drive.google.com/uc?export=download&id=1lxXyTLMng59RBRzgpLy_Oyv6n7TG3Fzz",
-        "backend/app/modules/fingerprint/model/fingerprint_validation_model.h5"
+        "app/modules/fingerprint/model/fingerprint_validation_model.h5"
     )
 
-    # 👉 Retina validation model baad me add karega
-    # download_model("RETINA_LINK",
-    # "backend/app/modules/retinal_detection/model/retina_validation_model.h5")
-
-    # 🔥 LOAD MODELS AFTER DOWNLOAD
+    # ---------------- LOAD MODELS ----------------
     try:
         load_retinal_model()
         print("✅ Retinal model preloaded")
@@ -84,8 +89,7 @@ async def startup_event():
         print("❌ Health model error:", e)
 
 
-# ----------- CORS -----------
-
+# ---------------- CORS ----------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -94,15 +98,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------- SESSION -----------
 
+# ---------------- SESSION ----------------
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET", "super-secret-key-change-this")
 )
 
-# ----------- ROUTES -----------
 
+# ---------------- ROUTES REGISTER ----------------
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(fingerprint_router, prefix="/api/fingerprint")
 app.include_router(medical_report_router, prefix="/api/medical-report")
@@ -110,17 +114,16 @@ app.include_router(medical_chat_router, prefix="/api/medical-chat")
 app.include_router(health_risk_router, prefix="/api/health-risk")
 app.include_router(blood_donation_router, prefix="/api/blood-donation")
 app.include_router(analytics_router, prefix="/api/admin")
-
 app.include_router(retinal_router, prefix="/api/retinal")
 
-# ----------- ROOT -----------
 
+# ---------------- ROOT ----------------
 @app.get("/")
 async def root():
     return {"message": "AI Healthcare Backend Running Successfully 🚀"}
 
-# ----------- HEALTH CHECK -----------
 
+# ---------------- HEALTH CHECK ----------------
 @app.get("/health")
 async def health():
     return {"status": "ok"}
