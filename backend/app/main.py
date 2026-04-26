@@ -10,14 +10,13 @@ load_dotenv()
 
 # ---------------- DOWNLOAD FUNCTION ----------------
 def download_model(url, path):
-    # ✅ SAFE: folder auto-create
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     if not os.path.exists(path):
         print(f"📥 Downloading {path}...")
 
         try:
-            r = requests.get(url, stream=True, timeout=60)  # ✅ timeout added
+            r = requests.get(url, stream=True, timeout=60)
 
             with open(path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
@@ -63,9 +62,15 @@ app = FastAPI(
 async def startup_event():
     print("🚀 Server started successfully")
 
-    # 🔥 DOWNLOAD MODEL (SAFE PATH FIXED)
+    # 🔥 MODEL 1 - Retinal
     download_model(
         "https://drive.google.com/uc?export=download&id=1lxXyTLMng59RBRzgpLy_Oyv6n7TG3Fzz",
+        "app/modules/retinal_detection/model/retina_validation_model.h5"
+    )
+
+    # 🔥 MODEL 2 - Fingerprint / Validation
+    download_model(
+        "https://drive.google.com/uc?export=download&id=1Cq9O5-A3DBv7llh6oo1C06cqnMgUovmz",
         "app/modules/fingerprint/model/fingerprint_validation_model.h5"
     )
 
