@@ -1,0 +1,38 @@
+# env files
+.env
+
+# python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# node
+node_modules/
+
+# build folders
+dist/
+build/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# netlify
+.netlify/
+
+# misc
+*.log
+
+backend/app/modules/fingerprint/model/fingerprint_validation_model.h5
+backend/app/modules/retinal_detection/model/retina_validation_model.h5
