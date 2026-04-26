@@ -19,6 +19,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/retinal-detection")
 async def scan_retina(file: UploadFile = File(...)):
 
+    # ---------------- VALIDATION ----------------
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files allowed")
 
@@ -26,15 +27,21 @@ async def scan_retina(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, unique_name)
 
     try:
+        # ---------------- SAVE FILE ----------------
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        if not is_retina(file_path):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid image. Please upload a valid retina (fundus) image."
-            )
+        # ---------------- RETINA CHECK (SAFE) ----------------
+        try:
+            if not is_retina(file_path):
+                return {
+                    "success": False,
+                    "error": "Invalid retina image"
+                }
+        except Exception as e:
+            print("⚠️ Retina validation skipped:", e)
 
+        # ---------------- PREDICTION ----------------
         result = predict_retinal_disease(file_path)
 
         if not result or result.get("error"):
@@ -43,11 +50,17 @@ async def scan_retina(file: UploadFile = File(...)):
                 detail=result.get("error", "Prediction failed")
             )
 
-        ai_report = get_ai_medical_report(
-            result["disease"],
-            result["confidence"]
-        )
+        # ---------------- AI REPORT ----------------
+        try:
+            ai_report = get_ai_medical_report(
+                result["disease"],
+                result["confidence"]
+            )
+        except Exception as e:
+            print("⚠️ AI report error:", e)
+            ai_report = {"note": "AI report unavailable"}
 
+        # ---------------- DB SAVE (SAFE) ----------------
         try:
             await prediction_collection.insert_one({
                 "type": "retina",
@@ -56,20 +69,24 @@ async def scan_retina(file: UploadFile = File(...)):
                 "ai_report": ai_report
             })
         except Exception as db_error:
-            print("⚠️ MongoDB Error:", db_error)
+            print("⚠️ MongoDB Error (non-fatal):", db_error)
 
+        # ---------------- RESPONSE ----------------
         return {
             "success": True,
             "prediction": result,
             "ai_report": ai_report
         }
 
+    # ---------------- ERROR HANDLING ----------------
     except HTTPException as e:
         raise e
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ RETINA ROUTE ERROR:", e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
+    # ---------------- CLEANUP ----------------
     finally:
         try:
             if os.path.exists(file_path):

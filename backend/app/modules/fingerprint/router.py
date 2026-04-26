@@ -24,11 +24,14 @@ async def predict_fingerprint(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, unique_name)
 
     try:
+        # ================= SAVE FILE =================
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        # ================= PREDICT =================
         result = predict_blood_group(file_path, file.filename)
 
+        # ✅ SAFE CHECK (IMPORTANT FIX)
         if not result or result.get("error"):
             raise HTTPException(
                 status_code=400,
@@ -38,21 +41,22 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         db_data = {
             "type": "fingerprint",
             "file": unique_name,
-            "blood_group": result["blood_group"],
-            "confidence": result["confidence"],
+            "blood_group": result.get("blood_group"),
+            "confidence": result.get("confidence"),
             "warning": result.get("warning"),
             "top_2": result.get("top_2", [])
         }
 
+        # ================= DB INSERT SAFE =================
         try:
             await prediction_collection.insert_one(db_data)
         except Exception as db_error:
-            print("⚠️ MongoDB Error:", db_error)
+            print("⚠️ MongoDB Error (non-fatal):", db_error)
 
         return {
             "success": True,
-            "blood_group": result["blood_group"],
-            "confidence": result["confidence"],
+            "blood_group": result.get("blood_group"),
+            "confidence": result.get("confidence"),
             "warning": result.get("warning"),
             "top_2": result.get("top_2", [])
         }
@@ -61,9 +65,11 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         raise e
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ API ERROR:", e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
     finally:
+        # ================= CLEANUP SAFE =================
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)

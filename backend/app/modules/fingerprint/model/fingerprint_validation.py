@@ -20,8 +20,10 @@ def load_validation_model():
                 try:
                     print("🔄 Loading fingerprint validation model...")
 
+                    # ✅ SAFE FIX (NO CRASH)
                     if not os.path.exists(MODEL_PATH):
-                        raise FileNotFoundError("Validation model not found")
+                        print("⚠️ Model not found yet, skipping load...")
+                        return None
 
                     model = tf.keras.models.load_model(MODEL_PATH)
 
@@ -51,12 +53,11 @@ def is_fingerprint(img_path):
         print("🧠 RAW Prediction:", prediction)
 
         # ================= SIGMOID MODEL =================
-        if prediction.shape[-1] == 1 or len(prediction.shape) == 2 and prediction.shape[1] == 1:
+        if prediction.shape[-1] == 1 or (len(prediction.shape) == 2 and prediction.shape[1] == 1):
 
             confidence = float(prediction[0][0])
             print("🔥 Sigmoid Confidence:", confidence)
 
-            # 🔥 SAFE THRESHOLD (important fix)
             return confidence >= 0.90
 
         # ================= SOFTMAX MODEL =================
@@ -67,7 +68,6 @@ def is_fingerprint(img_path):
 
             print("🔥 Softmax Class:", class_index, "Confidence:", confidence)
 
-            # class 1 = fingerprint
             return class_index == 1 and confidence >= 0.85
 
     except Exception as e:

@@ -21,12 +21,10 @@ class_names = [
 
 # ================= PATH =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 🔥 FINAL MODEL PATH (Drive download ke hisab se)
 MODEL_PATH = os.path.join(BASE_DIR, "retinal_model.h5")
 
 
-# ================= LOAD MODEL =================
+# ================= LOAD MODEL (SAFE) =================
 def load_retinal_model():
     global model
 
@@ -37,8 +35,10 @@ def load_retinal_model():
                     print("🔄 Loading retinal model...")
                     print("MODEL PATH:", MODEL_PATH)
 
+                    # ✅ SAFE FIX (NO CRASH)
                     if not os.path.exists(MODEL_PATH):
-                        raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
+                        print("⚠️ Retinal model not found yet")
+                        return None
 
                     model = load_model(MODEL_PATH, compile=False)
 
