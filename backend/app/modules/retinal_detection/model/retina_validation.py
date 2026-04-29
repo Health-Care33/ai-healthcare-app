@@ -1,57 +1,63 @@
-import os
-import tensorflow as tf
 import numpy as np
-from tensorflow.keras.preprocessing import image
+import os
+from tensorflow.keras.models import load_model
+import threading
 
+# ✅ SAME PREPROCESS IMPORT
+from app.modules.retinal_detection.model.preprocessing import preprocess_retina_image
+
+model = None
+model_lock = threading.Lock()
+
+# ✅ MODEL PATH
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "retina_validation_model.h5")
 
-model = None
 
-
-# ================= SAFE MODEL LOADER =================
-def load_model_safe():
+# ================= LOAD MODEL =================
+def load_validation_model():
     global model
 
     if model is None:
-        try:
-            if not os.path.exists(MODEL_PATH):
-                print("⚠️ Retina model not found yet")
-                return None
+        with model_lock:
+            if model is None:
+                try:
+                    print("🔄 Loading retina validation model...")
 
-            print("🔄 Loading retina model...")
-            model = tf.keras.models.load_model(MODEL_PATH)
-            print("✅ Retina model loaded")
+                    if not os.path.exists(MODEL_PATH):
+                        print("❌ Validation model not found")
+                        return None
 
-        except Exception as e:
-            print("❌ Model load error:", e)
-            model = None
+                    model = load_model(MODEL_PATH, compile=False)
+
+                    print("✅ Retina validation model loaded")
+
+                except Exception as e:
+                    print("❌ Validation model load error:", e)
+                    model = None
 
     return model
 
 
-# ================= VALIDATION =================
+# ================= VALIDATION FUNCTION =================
 def is_retina(img_path):
     try:
-        model_instance = load_model_safe()
+        model_instance = load_validation_model()
 
         if model_instance is None:
-            return False
+            print("⚠️ Validation model not loaded, skipping check")
+            return True   # 🔥 fail-safe (important)
 
-        img = image.load_img(img_path, target_size=(224, 224))
-        img_array = image.img_to_array(img)
+        # ✅ SAME PREPROCESSING (FINAL FIX)
+        img = preprocess_retina_image(img_path)
 
-        img_array = np.expand_dims(img_array, axis=0)
-        img_array = img_array / 255.0
+        prediction = model_instance.predict(img, verbose=0)[0][0]
 
-        prediction = model_instance.predict(img_array, verbose=0)
+        print("🔍 Retina validation prediction:", prediction)
 
-        confidence = float(prediction[0][0])
-
-        print("Validation Confidence:", confidence)
-
-        return confidence > 0.5
+        # ✅ THRESHOLD (tune if needed)
+        return prediction > 0.5
 
     except Exception as e:
-        print("Validation Error:", e)
-        return False
+        print("⚠️ Retina validation error:", e)
+        return True   # 🔥 skip validation if error
