@@ -10,3 +10,4 @@ class HealthRiskInput(BaseModel):
     smoking: int = Field(..., example=0)
     alcohol: int = Field(..., example=0)
     physical_activity: int = Field(..., example=1)
+    gender: int = Field(..., example=1)  # ✅ ADD THIS

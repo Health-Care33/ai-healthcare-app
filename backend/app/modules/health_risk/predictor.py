@@ -3,6 +3,9 @@ import joblib
 import numpy as np
 import threading
 
+# ✅ AI FUNCTION
+from app.modules.health_risk.service import get_ai_disease_prediction
+
 # ✅ paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "health_risk_model.pkl")
@@ -10,7 +13,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "model", "health_risk_model.pkl")
 model = None
 model_lock = threading.Lock()
 
-# 🔥 IMPORTANT: feature order (MUST MATCH TRAINING)
+# ⚠️ DO NOT CHANGE ORDER (model trained on this)
 FEATURE_ORDER = [
     "age",
     "bmi",
@@ -27,7 +30,7 @@ def load_health_model():
     global model
 
     if model is None:
-        with model_lock:  # 🔥 thread-safe
+        with model_lock:
             if model is None:
                 try:
                     print("🔄 Loading health risk model...")
@@ -48,11 +51,8 @@ def load_health_model():
 
 def preprocess_input(data: dict):
     try:
-        # 🔥 ensure correct order
         input_list = [data.get(feature, 0) for feature in FEATURE_ORDER]
-
         return np.array([input_list])
-
     except Exception as e:
         raise Exception(f"Input preprocessing failed: {str(e)}")
 
@@ -69,14 +69,20 @@ def predict_health_risk(data: dict):
 
         prediction = model_instance.predict(input_data)[0]
 
-        # 🔥 optional probability (if supported)
         confidence = None
         if hasattr(model_instance, "predict_proba"):
             confidence = float(np.max(model_instance.predict_proba(input_data)))
 
+        # ✅ CLEAN RISK LABEL
+        risk = "High" if str(prediction) == "1" else "Low"
+
+        # ✅ AI CALL (GROQ)
+        diseases = get_ai_disease_prediction(data, risk)
+
         return {
-            "risk_level": str(prediction),
-            "confidence": round(confidence * 100, 2) if confidence else None
+            "risk_level": risk,
+            "confidence": round(confidence * 100, 2) if confidence else None,
+            "possible_diseases": diseases
         }
 
     except Exception as e:

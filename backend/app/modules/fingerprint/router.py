@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from app.modules.fingerprint.predictor import predict_blood_group
+from app.modules.fingerprint.model.fingerprint_validation import is_fingerprint
 from app.database.mongodb import prediction_collection
 
 router = APIRouter(tags=["Fingerprint"])
@@ -17,6 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/predict-blood-group")
 async def predict_fingerprint(file: UploadFile = File(...)):
 
+    # ================= FILE TYPE CHECK =================
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files allowed")
 
@@ -28,35 +30,54 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # ================= PREDICT =================
+        # ================= FINGERPRINT VALIDATION =================
+        try:
+            is_valid = is_fingerprint(file_path)
+        except Exception as e:
+            print("⚠️ Fingerprint validation error:", e)
+            return {
+                "success": False,
+                "error": "Validation failed"
+            }
+
+        if not is_valid:
+            return {
+                "success": False,
+                "error": "Invalid fingerprint image"
+            }
+
+        # ================= PREDICTION =================
         result = predict_blood_group(file_path, file.filename)
 
-        # ✅ SAFE CHECK (IMPORTANT FIX)
         if not result or result.get("error"):
             raise HTTPException(
                 status_code=400,
                 detail=result.get("error", "Prediction failed")
             )
 
+        confidence = result.get("confidence", 0)
+
+        
+        # ================= DB SAVE =================
         db_data = {
             "type": "fingerprint",
             "file": unique_name,
             "blood_group": result.get("blood_group"),
-            "confidence": result.get("confidence"),
+            "confidence": confidence,
             "warning": result.get("warning"),
             "top_2": result.get("top_2", [])
         }
 
-        # ================= DB INSERT SAFE =================
         try:
             await prediction_collection.insert_one(db_data)
         except Exception as db_error:
             print("⚠️ MongoDB Error (non-fatal):", db_error)
 
+        # ================= RESPONSE =================
         return {
             "success": True,
             "blood_group": result.get("blood_group"),
-            "confidence": result.get("confidence"),
+            "confidence": confidence,
             "warning": result.get("warning"),
             "top_2": result.get("top_2", [])
         }
@@ -69,7 +90,7 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
     finally:
-        # ================= CLEANUP SAFE =================
+        # ================= CLEANUP =================
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)

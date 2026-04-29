@@ -14,7 +14,7 @@ model = None
 model_lock = threading.Lock()
 
 # ================= LABELS =================
-CLASS_NAMES = ["A+","A-","B-","B+","AB+","AB-","O+","O-"]
+CLASS_NAMES = ["A+","B+","AB+","O+","A-","B-","AB-","O-"]
 
 
 # ================= LOAD MODEL =================
@@ -26,19 +26,18 @@ def load_fingerprint_model():
             if model is None:
                 try:
                     print("🔄 Loading fingerprint prediction model...")
+                    print("📂 MODEL PATH:", MODEL_PATH)
 
-                    # ✅ SAFE FIX (NO CRASH)
                     if not os.path.exists(MODEL_PATH):
-                        print("⚠️ Prediction model not found yet")
-                        return None
+                        raise Exception("Fingerprint prediction model not found")
 
                     model = load_model(MODEL_PATH, compile=False)
 
-                    print("✅ Prediction model loaded")
+                    print("✅ Prediction model loaded successfully")
 
                 except Exception as e:
                     print("❌ MODEL LOAD ERROR:", e)
-                    model = None
+                    raise e
 
     return model
 
@@ -76,13 +75,14 @@ def is_valid_fingerprint_filename(filename: str):
 def predict_blood_group(image_path, filename=None):
     try:
 
+        # filename validation
         if filename and not is_valid_fingerprint_filename(filename):
             return {
                 "error": "Invalid filename",
                 "details": "Filename must contain fingerprint/blood/patient keyword"
             }
 
-        # ✅ SAFE: fingerprint check fallback handled
+        # fingerprint validation
         try:
             if not is_fingerprint(image_path):
                 return {
@@ -90,7 +90,10 @@ def predict_blood_group(image_path, filename=None):
                     "details": "Not a valid fingerprint"
                 }
         except Exception as e:
-            print("⚠️ Fingerprint validation skipped:", e)
+            return {
+                "error": "Validation failed",
+                "details": str(e)
+            }
 
         model_instance = load_fingerprint_model()
 
@@ -99,18 +102,28 @@ def predict_blood_group(image_path, filename=None):
 
         img = preprocess_image(image_path)
 
-        predictions = model_instance.predict(img, verbose=0)
-        predictions = np.nan_to_num(predictions[0])
+        # ✅ FINAL FIX (NO DOUBLE SOFTMAX)
+        predictions = model_instance.predict(img, verbose=0)[0]
+        predictions = np.nan_to_num(predictions)
+
+        print("🔍 FINAL PROBABILITIES:", predictions)
+        print("🔢 SUM:", np.sum(predictions))
 
         max_conf = float(np.max(predictions))
         top_index = int(np.argmax(predictions))
+
+        # Top 2 predictions
         top_2_indices = predictions.argsort()[-2:][::-1]
 
         return {
             "success": True,
             "blood_group": CLASS_NAMES[top_index],
             "confidence": round(max_conf * 100, 2),
-            "warning": "Low confidence" if max_conf < 0.5 else "High confidence",
+            "warning": (
+                "Very Low Confidence ❌" if max_conf < 0.4 else
+                "Medium Confidence ⚠️" if max_conf < 0.7 else
+                "High Confidence ✅"
+            ),
             "top_2": [
                 {
                     "blood_group": CLASS_NAMES[int(i)],
@@ -121,6 +134,7 @@ def predict_blood_group(image_path, filename=None):
         }
 
     except Exception as e:
+        print("❌ Prediction error:", e)
         return {
             "error": "Prediction failed",
             "details": str(e)

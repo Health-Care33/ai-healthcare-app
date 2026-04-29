@@ -10,28 +10,33 @@ router = APIRouter(tags=["Health Risk"])
 async def predict_risk(data: HealthRiskInput):
 
     try:
-        # ✅ convert to dict
+        # ✅ convert request to dict
         input_data = data.dict()
 
-        # 🔥 prediction
+        # 🔥 ML + GROQ prediction
         result = predict_health_risk(input_data)
 
         if "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
 
-        # 🔥 user id (later auth se aayega)
+        # 🔥 temp user (replace later with auth)
         user_id = "demo_user"
 
-        # 🔥 save to DB (safe)
+        # ✅ CLEAN DB SAVE
         try:
             await save_prediction(
                 user_id,
                 input_data,
-                result
+                {
+                    "risk_level": result.get("risk_level"),
+                    "confidence": result.get("confidence"),
+                    "possible_diseases": result.get("possible_diseases")
+                }
             )
         except Exception as db_error:
             print("⚠️ DB Error:", db_error)
 
+        # ✅ FINAL RESPONSE
         return {
             "success": True,
             "data": result
