@@ -42,21 +42,51 @@ export default function HealthRiskPrediction() {
     })
   }
 
-  // ✅ VALIDATION FUNCTION
+  // ✅ VALIDATION (same as yours)
   const isFormValid = () => {
-    return Object.values(form).every(
-      (val) => val !== "" && val !== null && val !== undefined
-    )
+
+    const {
+      name, email, age, bmi,
+      blood_pressure, cholesterol, glucose,
+      smoking, physical_activity, alcohol, gender
+    } = form
+
+    if (
+      !name || !email || !age || !bmi ||
+      !blood_pressure || !cholesterol || !glucose ||
+      smoking === "" || physical_activity === "" || alcohol === "" || !gender
+    ) {
+      setError("⚠ All fields are required")
+      return false
+    }
+
+    if (!/^[A-Za-z ]+$/.test(name)) {
+      setError("⚠ Name should contain only letters")
+      return false
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("⚠ Invalid email format")
+      return false
+    }
+
+    if (age < 1 || age > 120) return setError("⚠ Age must be between 1 - 120"), false
+    if (bmi < 10 || bmi > 60) return setError("⚠ BMI must be between 10 - 60"), false
+    if (blood_pressure < 50 || blood_pressure > 200) return setError("⚠ BP must be between 50 - 200"), false
+    if (cholesterol < 100 || cholesterol > 400) return setError("⚠ Cholesterol must be between 100 - 400"), false
+    if (glucose < 50 || glucose > 300) return setError("⚠ Glucose must be between 50 - 300"), false
+    if (physical_activity < 0 || physical_activity > 10) return setError("⚠ Activity must be between 0 - 10"), false
+    if (![0, 1].includes(smoking)) return setError("⚠ Smoking must be 0 or 1"), false
+    if (![0, 1].includes(alcohol)) return setError("⚠ Alcohol must be 0 or 1"), false
+
+    setError("")
+    return true
   }
 
   const predictRisk = async () => {
 
-    if (!isFormValid()) {
-      setError("⚠ Please fill all fields before prediction")
-      return
-    }
+    if (!isFormValid()) return
 
-    setError("")
     setLoading(true)
 
     try {
@@ -117,63 +147,108 @@ export default function HealthRiskPrediction() {
             AI Health Risk Prediction
           </h1>
 
-          {/* ❌ ERROR MESSAGE */}
           {error && (
             <p className="text-red-400 text-center mb-4">{error}</p>
           )}
 
           <div className="grid grid-cols-2 gap-4">
 
-            <input name="name" placeholder="Name" onChange={handleChange} className="p-2 text-black" />
-            <input name="email" placeholder="Email" onChange={handleChange} className="p-2 text-black" />
+            <input name="name" placeholder="Name" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            <input type="number" name="age" placeholder="Age" onChange={handleChange} className="p-2 text-black" />
-            <input type="number" name="bmi" placeholder="BMI" onChange={handleChange} className="p-2 text-black" />
+            <input name="email" placeholder="Email" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            <select onChange={handleGender} className="p-2 text-black">
-              <option value="">Select Gender</option>
-              <option value="1">Male</option>
-              <option value="0">Female</option>
+            <input type="number" name="age" placeholder="Age" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+
+            <input type="number" name="bmi" placeholder="BMI" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+
+            <select onChange={handleGender} className="p-2 text-white bg-white/20">
+              <option value="" style={{ color: "black" }}>Select Gender</option>
+              <option value="1" style={{ color: "black" }}>Male</option>
+              <option value="0" style={{ color: "black" }}>Female</option>
             </select>
 
-            <input type="number" name="blood_pressure" placeholder="BP" onChange={handleChange} className="p-2 text-black" />
-            <input type="number" name="cholesterol" placeholder="Cholesterol" onChange={handleChange} className="p-2 text-black" />
-            <input type="number" name="glucose" placeholder="Glucose" onChange={handleChange} className="p-2 text-black" />
+            <input type="number" name="blood_pressure" placeholder="BP" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            <input type="number" name="smoking" placeholder="Smoking (0/1)" onChange={handleChange} className="p-2 text-black" />
-            <input type="number" name="physical_activity" placeholder="Activity" onChange={handleChange} className="p-2 text-black" />
-            <input type="number" name="alcohol" placeholder="Alcohol (0/1)" onChange={handleChange} className="p-2 text-black" />
+            <input type="number" name="cholesterol" placeholder="Cholesterol" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+
+            <input type="number" name="glucose" placeholder="Glucose" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+
+            <input type="number" name="smoking" placeholder="Smoking (0/1)" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+
+            <input type="number" name="physical_activity" placeholder="Activity" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+
+            <input type="number" name="alcohol" placeholder="Alcohol (0/1)" onChange={handleChange}
+              className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
           </div>
 
-          {/* ✅ BUTTON BLOCKED IF INVALID */}
           <button
             onClick={predictRisk}
-            disabled={loading || !isFormValid()}
+            disabled={loading}
             className="w-full mt-6 bg-purple-600 p-3 rounded-xl disabled:opacity-50"
           >
             {loading ? "Analyzing..." : "Predict"}
           </button>
 
-          {/* RESULT */}
+          {/* 🔥 FINAL ANIMATED RESULT */}
           {result && (
-            <div className="mt-6">
-              <h2>Risk: {result.risk_level}</h2>
-              <p>Confidence: {result.confidence}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="mt-6 p-6 bg-white/10 rounded-2xl border border-white/20"
+            >
+              <h2 className="text-2xl font-bold text-center mb-2">
+                Prediction Result
+              </h2>
+
+              <p className={`text-center text-xl font-semibold ${
+                result.risk_level === "High" ? "text-red-400" : "text-green-400"
+              }`}>
+                Risk: {result.risk_level}
+              </p>
+
+              <p className="text-center mb-4">
+                Confidence: {result.confidence ? `${result.confidence}%` : "N/A"}
+              </p>
+
+              {result.possible_diseases && (
+                <div>
+                  <h3 className="font-semibold mb-2">
+                    Possible Future Diseases:
+                  </h3>
+
+                  <ul className="list-disc pl-5 text-gray-200">
+                    {result.possible_diseases
+                      .split("\n")
+                      .filter(i => i.trim())
+                      .map((item, i) => (
+                        <li key={i}>{item.replace("-", "").trim()}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
 
               <button
                 onClick={downloadPDF}
-                className="mt-4 bg-green-600 px-4 py-2 rounded"
+                className="mt-6 w-full bg-green-600 px-4 py-2 rounded-xl"
               >
                 Download PDF
               </button>
-            </div>
+            </motion.div>
           )}
 
         </div>
-
       </motion.div>
-
     </div>
   )
 }
