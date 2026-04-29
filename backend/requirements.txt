@@ -39,3 +39,4 @@ python-multipart==0.0.22
 # AI
 groq==1.1.1
 requests
+gdown==4.7.3

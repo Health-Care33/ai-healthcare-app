@@ -3,31 +3,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import os
 from dotenv import load_dotenv
-import requests
+import gdown   # ✅ FIX: requests → gdown
 
 # 🔥 LOAD ENV
 load_dotenv()
 
 
 # ---------------- DOWNLOAD FUNCTION ----------------
-def download_model(url, path):
+def download_model(file_id, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     if not os.path.exists(path):
         print(f"📥 Downloading {path}...")
 
         try:
-            r = requests.get(url, stream=True, timeout=60)
-
-            with open(path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, path, quiet=False)   # ✅ FIX
             print(f"✅ Download complete: {path}")
 
         except Exception as e:
             print("❌ Download failed:", e)
+            raise e   # ✅ IMPORTANT (fail loudly)
 
     else:
         print(f"⚡ Model already exists: {path}")
@@ -58,24 +54,32 @@ from app.modules.retinal_detection.model.router import router as retinal_router
 async def startup_event():
     print("🚀 Server started successfully")
 
-    # 🔥 MODEL DOWNLOADS (SAFE PATHS)
+    # 🔥 MODEL DOWNLOADS (FIXED)
     download_model(
-        "https://drive.google.com/uc?export=download&id=1lxXyTLMng59RBRzgpLy_Oyv6n7TG3Fzz",
+        "1lxXyTLMng59RBRzgpLy_Oyv6n7TG3Fzz",
         "app/modules/retinal_detection/model/retina_validation_model.h5"
     )
 
     download_model(
-        "https://drive.google.com/uc?export=download&id=1Cq9O5-A3DBv7llh6oo1C06cqnMgUovmz",
+        "1Cq9O5-A3DBv7llh6oo1C06cqnMgUovmz",
         "app/modules/fingerprint/model/fingerprint_validation_model.h5"
     )
 
-    # ---------------- LOAD MODELS (LAZY SAFE IMPORT) ----------------
+    # ---------------- LOAD MODELS ----------------
     try:
         from app.modules.retinal_detection.model.predictor import load_retinal_model
         load_retinal_model()
         print("✅ Retinal model preloaded")
     except Exception as e:
         print("❌ Retinal model error:", e)
+
+    # 🔥 NEW FIX (VALIDATION MODEL LOAD)
+    try:
+        from app.modules.retinal_detection.model.retina_validation import load_validation_model
+        load_validation_model()
+        print("✅ Retina validation model preloaded")
+    except Exception as e:
+        print("❌ Retina validation model error:", e)
 
     try:
         from app.modules.fingerprint.predictor import load_fingerprint_model
