@@ -23,18 +23,18 @@ def load_validation_model():
             if model is None:
                 try:
                     print("🔄 Loading retina validation model...")
+                    print("📂 MODEL PATH:", MODEL_PATH)
 
                     if not os.path.exists(MODEL_PATH):
-                        print("❌ Validation model not found")
-                        return None
+                        raise Exception("Validation model file not found")
 
                     model = load_model(MODEL_PATH, compile=False)
 
-                    print("✅ Retina validation model loaded")
+                    print("✅ Retina validation model loaded successfully")
 
                 except Exception as e:
                     print("❌ Validation model load error:", e)
-                    model = None
+                    raise e   # 🔥 DO NOT SILENT FAIL
 
     return model
 
@@ -44,20 +44,27 @@ def is_retina(img_path):
     try:
         model_instance = load_validation_model()
 
+        # ❌ agar model load nahi hua → reject karo (skip nahi)
         if model_instance is None:
-            print("⚠️ Validation model not loaded, skipping check")
-            return True   # 🔥 fail-safe (important)
+            print("❌ Validation model is None")
+            return False
 
-        # ✅ SAME PREPROCESSING (FINAL FIX)
+        # ✅ SAME PREPROCESSING
         img = preprocess_retina_image(img_path)
+
+        print("📊 Input shape:", img.shape)
+        print("📊 Min/Max:", img.min(), img.max())
 
         prediction = model_instance.predict(img, verbose=0)[0][0]
 
         print("🔍 Retina validation prediction:", prediction)
 
-        # ✅ THRESHOLD (tune if needed)
-        return prediction > 0.5
+        # ✅ threshold (tuneable)
+        if prediction > 0.5:
+            return True
+        else:
+            return False
 
     except Exception as e:
-        print("⚠️ Retina validation error:", e)
-        return True   # 🔥 skip validation if error
+        print("❌ Retina validation runtime error:", e)
+        return False   # 🔥 FAIL SAFE = REJECT (not accept)
