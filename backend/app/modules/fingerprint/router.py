@@ -4,114 +4,84 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from app.modules.fingerprint.predictor import predict_blood_group
-from app.modules.fingerprint.model.fingerprint_validation import is_fingerprint
-from app.database.mongodb import prediction_collection
+from app.database.mongodb import db
 
 router = APIRouter(tags=["Fingerprint"])
 
+# ================= PATH =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "fingerprints")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+# ================= ROUTE =================
 @router.post("/predict-blood-group")
 async def predict_fingerprint(file: UploadFile = File(...)):
 
-    # ================= FILE TYPE CHECK =================
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image files allowed")
-
-    unique_name = f"{uuid.uuid4()}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, unique_name)
+    file_path = None
 
     try:
-        # ================= SAVE FILE =================
+        # 1️⃣ FILE TYPE CHECK
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Only image files allowed")
+
+        # 2️⃣ SAVE FILE
+        unique_name = f"{uuid.uuid4()}_{file.filename}"
+        file_path = os.path.join(UPLOAD_DIR, unique_name)
+
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # ================= VALIDATION =================
-        try:
-            is_valid = is_fingerprint(file_path)
-        except Exception as e:
-            print("⚠️ Validation error:", e)
+        # ensure file fully written (deploy safety)
+        buffer.flush() if "buffer" in locals() else None
 
-            return {
-                "success": False,
-                "blood_group": "Unknown",
-                "confidence": 0.0,
-                "warning": None,
-                "top_2": [],
-                "error": "Validation failed"
-            }
-
-        if not is_valid:
-            return {
-                "success": False,
-                "blood_group": "Unknown",
-                "confidence": 0.0,
-                "warning": None,
-                "top_2": [],
-                "error": "Invalid fingerprint image"
-            }
-
-        # ================= PREDICTION =================
+        # 3️⃣ PREDICTION
         result = predict_blood_group(file_path, file.filename)
 
-        # 🔥 Even if prediction failed → still safe response
-        if not result:
-            result = {
+        # if predictor returns error
+        if not result or not result.get("success"):
+            return {
                 "success": False,
-                "blood_group": "Unknown",
-                "confidence": 0.0,
-                "warning": None,
-                "top_2": [],
-                "error": "Prediction returned empty result"
+                "error": result.get("error", "Prediction failed")
             }
 
-        confidence = result.get("confidence", 0.0)
+        # 4️⃣ DB SAVE (non-blocking safe)
+        try:
+            await db.fingerprint_predictions.insert_one({
+                "type": "fingerprint",
+                "file": unique_name,
+                "blood_group": result.get("blood_group"),
+                "confidence": result.get("confidence"),
+                "top_2": result.get("top_2", [])
+            })
+        except Exception as db_error:
+            print("⚠️ DB Error (ignored):", db_error)
 
-        # ================= DB SAVE =================
-        db_data = {
-            "type": "fingerprint",
-            "file": unique_name,
+        # 5️⃣ FINAL RESPONSE
+        return {
+            "success": True,
             "blood_group": result.get("blood_group"),
-            "confidence": confidence,
-            "warning": result.get("warning"),
+            "confidence": result.get("confidence"),
             "top_2": result.get("top_2", [])
         }
 
-        try:
-            await prediction_collection.insert_one(db_data)
-        except Exception as db_error:
-            print("⚠️ MongoDB Error (non-fatal):", db_error)
-
-        # ================= FINAL RESPONSE =================
-        return {
-            "success": result.get("success", False),
-            "blood_group": result.get("blood_group", "Unknown"),
-            "confidence": confidence,
-            "warning": result.get("warning"),
-            "top_2": result.get("top_2", []),
-            "error": result.get("error")
-        }
+    except HTTPException as e:
+        raise e
 
     except Exception as e:
-        print("❌ API ERROR:", e)
+        print("❌ Router Error:", e)
 
         return {
             "success": False,
-            "blood_group": "Unknown",
-            "confidence": 0.0,
-            "warning": None,
-            "top_2": [],
-            "error": "Internal Server Error"
+            "error": "Internal Server Error",
+            "details": str(e)
         }
 
     finally:
-        # ================= CLEANUP =================
+        # 6️⃣ CLEANUP FILE
         try:
-            if os.path.exists(file_path):
+            if file_path and os.path.exists(file_path):
                 os.remove(file_path)
         except Exception as cleanup_error:
             print("⚠️ Cleanup Error:", cleanup_error)

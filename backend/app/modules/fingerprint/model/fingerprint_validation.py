@@ -1,8 +1,8 @@
 import os
-import tensorflow as tf
 import numpy as np
-import threading
 import cv2
+import threading
+import tensorflow as tf
 
 # ================= PATH =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,71 +20,80 @@ def load_validation_model():
         with model_lock:
             if model is None:
                 try:
-                    print("🔄 Loading fingerprint validation model...")
-
                     if not os.path.exists(MODEL_PATH):
-                        raise Exception("Validation model not found")
+                        print("⚠️ Validation model not found")
+                        return None
 
                     model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
                     print("✅ Validation model loaded")
 
                 except Exception as e:
-                    print("❌ VALIDATION MODEL ERROR:", e)
+                    print("❌ Validation model error:", e)
                     return None
 
     return model
 
 
-# ================= PREPROCESS =================
-def preprocess(img_path):
-    img = cv2.imread(img_path)
-
-    if img is None:
-        raise ValueError("Image not readable")
-
-    img = cv2.resize(img, (224, 224))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = img.astype("float32") / 255.0
-
-    return np.expand_dims(img, axis=0)
-
-
-# ================= VALIDATION =================
-def is_fingerprint(img_path):
+# ================= SAFE IMAGE LOAD =================
+def safe_load_image(path):
     try:
+        if not path or not os.path.exists(path):
+            return None
+
+        img = cv2.imread(path)
+
+        if img is None:
+            return None
+
+        return img
+
+    except Exception:
+        return None
+
+
+# ================= MAIN VALIDATION =================
+def is_fingerprint(image_path):
+    try:
+
+        # 1️⃣ file check
+        if not image_path or not os.path.exists(image_path):
+            print("❌ File not found")
+            return False
+
+        # 2️⃣ read image safely
+        img = safe_load_image(image_path)
+
+        if img is None:
+            print("❌ Image unreadable by OpenCV")
+            return False
+
+        # 3️⃣ load model (fail-safe)
         model_instance = load_validation_model()
 
-        # ❌ model load fail → allow (fail-safe)
+        # 🔥 if model missing → DO NOT BLOCK PIPELINE
         if model_instance is None:
-            print("⚠️ Validation model not loaded → skipping validation")
+            print("⚠️ Model missing → bypass validation")
             return True
 
-        img = preprocess(img_path)
+        # 4️⃣ preprocess
+        img = cv2.resize(img, (224, 224))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = img.astype("float32") / 255.0
+        img = np.expand_dims(img, axis=0)
 
+        # 5️⃣ prediction
         prediction = model_instance.predict(img, verbose=0)
         prediction = np.nan_to_num(prediction)
 
-        print("🧠 RAW Validation Prediction:", prediction)
+        confidence = float(np.max(prediction))
 
-        # ================= SIGMOID =================
-        if prediction.shape[-1] == 1:
-            confidence = float(prediction[0][0])
+        print("🧠 Validation confidence:", confidence)
 
-        # ================= SOFTMAX =================
-        else:
-            confidence = float(np.max(prediction))
-
-        print("🔥 Validation Confidence:", confidence)
-
-        # ✅ RELAXED THRESHOLD (important fix)
-        if confidence >= 0.3:
-            return True
-        else:
-            return False
+        # 6️⃣ FINAL RULE (RELAXED FOR PRODUCTION)
+        return confidence >= 0.3
 
     except Exception as e:
-        print("❌ Validation Error:", e)
+        print("❌ Validation crash:", e)
 
-        # 🔥 fail-safe → block na kare system ko
+        # 🔥 fail-safe: never break pipeline
         return True
