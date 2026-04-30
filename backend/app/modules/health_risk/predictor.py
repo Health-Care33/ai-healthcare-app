@@ -3,17 +3,16 @@ import joblib
 import numpy as np
 import threading
 
-# ✅ AI FUNCTION
 from app.modules.health_risk.service import get_ai_disease_prediction
 
-# ✅ paths
+# ================= PATH =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "health_risk_model.pkl")
 
 model = None
 model_lock = threading.Lock()
 
-# ⚠️ DO NOT CHANGE ORDER (model trained on this)
+# ================= FEATURE ORDER =================
 FEATURE_ORDER = [
     "age",
     "bmi",
@@ -26,6 +25,7 @@ FEATURE_ORDER = [
 ]
 
 
+# ================= LOAD MODEL =================
 def load_health_model():
     global model
 
@@ -49,43 +49,58 @@ def load_health_model():
     return model
 
 
+# ================= PREPROCESS =================
 def preprocess_input(data: dict):
     try:
-        input_list = [data.get(feature, 0) for feature in FEATURE_ORDER]
-        return np.array([input_list])
+        return np.array([[float(data.get(f, 0)) for f in FEATURE_ORDER]])
     except Exception as e:
         raise Exception(f"Input preprocessing failed: {str(e)}")
 
 
+# ================= PREDICT =================
 def predict_health_risk(data: dict):
 
-    model_instance = load_health_model()
-
-    if model_instance is None:
-        return {"error": "Health risk model not loaded"}
-
     try:
+        model_instance = load_health_model()
+
+        if model_instance is None:
+            return {"error": "Health risk model not loaded"}
+
         input_data = preprocess_input(data)
 
+        # ================= ML PREDICTION =================
         prediction = model_instance.predict(input_data)[0]
 
+        # safe conversion
+        try:
+            prediction = int(prediction)
+        except:
+            prediction = 0
+
+        risk = "High" if prediction == 1 else "Low"
+
+        # ================= CONFIDENCE (SAFE) =================
         confidence = None
         if hasattr(model_instance, "predict_proba"):
-            confidence = float(np.max(model_instance.predict_proba(input_data)))
+            proba = model_instance.predict_proba(input_data)
+            confidence = float(np.max(proba)) * 100
 
-        # ✅ CLEAN RISK LABEL
-        risk = "High" if str(prediction) == "1" else "Low"
+        # ================= AI CALL (SAFE WRAP) =================
+        try:
+            diseases = get_ai_disease_prediction(data, risk)
+        except Exception as ai_error:
+            print("⚠️ AI Error:", ai_error)
+            diseases = "AI prediction unavailable"
 
-        # ✅ AI CALL (GROQ)
-        diseases = get_ai_disease_prediction(data, risk)
-
+        # ================= RESPONSE =================
         return {
             "risk_level": risk,
-            "confidence": round(confidence * 100, 2) if confidence else None,
+            "confidence": round(confidence, 2) if confidence is not None else 0,
             "possible_diseases": diseases
         }
 
     except Exception as e:
+        print("❌ Prediction Error:", e)
         return {
             "error": "Prediction failed",
             "details": str(e)

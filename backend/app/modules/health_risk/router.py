@@ -10,19 +10,23 @@ router = APIRouter(tags=["Health Risk"])
 async def predict_risk(data: HealthRiskInput):
 
     try:
-        # ✅ convert request to dict
-        input_data = data.dict()
+        # ================= INPUT =================
+        input_data = data.model_dump()
 
-        # 🔥 ML + GROQ prediction
+        # ================= PREDICTION =================
         result = predict_health_risk(input_data)
 
-        if "error" in result:
-            raise HTTPException(status_code=400, detail=result["error"])
+        # strict error handling
+        if not result or result.get("error"):
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("error", "Prediction failed")
+            )
 
-        # 🔥 temp user (replace later with auth)
+        # ================= USER (TEMP) =================
         user_id = "demo_user"
 
-        # ✅ CLEAN DB SAVE
+        # ================= SAVE TO DB =================
         try:
             await save_prediction(
                 user_id,
@@ -36,14 +40,17 @@ async def predict_risk(data: HealthRiskInput):
         except Exception as db_error:
             print("⚠️ DB Error:", db_error)
 
-        # ✅ FINAL RESPONSE
+        # ================= FINAL RESPONSE =================
         return {
             "success": True,
-            "data": result
+            "prediction": result.get("risk_level"),
+            "confidence": result.get("confidence"),
+            "possible_diseases": result.get("possible_diseases")
         }
 
     except HTTPException:
         raise
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ Router Error:", e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
