@@ -22,8 +22,8 @@ export default function FingerprintPrediction(){
     e.preventDefault()
     setDragging(false)
 
-    const droppedFile = e.dataTransfer.files[0]
-    handleFile(droppedFile)
+    const droppedFile = e.dataTransfer.files?.[0]
+    if(droppedFile) handleFile(droppedFile)
   }
 
   const handlePredict = async (e)=>{
@@ -46,11 +46,14 @@ export default function FingerprintPrediction(){
         formData
       )
 
-      setResult(res.data)
+      setResult(res?.data || {})
 
     }catch(err){
       console.log(err)
-      alert("Prediction failed")
+      setResult({
+        success:false,
+        error:"Prediction failed"
+      })
     }
 
     setLoading(false)
@@ -89,7 +92,7 @@ export default function FingerprintPrediction(){
             <input
               type="file"
               accept="image/*"
-              onChange={(e)=>handleFile(e.target.files[0])}
+              onChange={(e)=>handleFile(e.target.files?.[0])}
               className="hidden"
               id="fileUpload"
             />
@@ -158,7 +161,7 @@ export default function FingerprintPrediction(){
 
           )}
 
-          {/* ✅ SUCCESS RESULT */}
+          {/* SUCCESS RESULT */}
 
           {result && result.success && (
 
@@ -180,13 +183,11 @@ export default function FingerprintPrediction(){
                 Confidence: {(Number(result?.confidence ?? 0)).toFixed(2)}%
               </p>
 
-              {/* Confidence Bar */}
-
               <div className="w-full bg-white/20 rounded-full h-4">
 
                 <motion.div
                   initial={{width:0}}
-                  animate={{ width: `${result?.confidence ?? 0}%` }}
+                  animate={{ width: `${Math.min(Number(result?.confidence ?? 0), 100)}%` }}
                   transition={{duration:1}}
                   className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
                 />
@@ -197,9 +198,9 @@ export default function FingerprintPrediction(){
 
           )}
 
-          {/* ✅ ERROR RESULT */}
+          {/* ERROR RESULT */}
 
-          {result && !result.success && (
+          {result && result.success === false && (
             <div className="mt-6 text-red-400 text-center">
               ❌ {result.error || "Prediction failed"}
             </div>
