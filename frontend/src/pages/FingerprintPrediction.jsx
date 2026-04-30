@@ -76,6 +76,7 @@ export default function HealthRiskPrediction() {
 
     setLoading(true)
     setResult(null)
+    setError("")
 
     try {
       const res = await axios.post(
@@ -83,14 +84,16 @@ export default function HealthRiskPrediction() {
         form
       )
 
-      // ✅ FIX: correct response mapping
+      console.log("API RESPONSE 👉", res.data)
+
+      // ✅ IMPORTANT FIX
       setResult(res.data)
 
     } catch (err) {
       console.error(err)
 
       if (err.response?.status === 422) {
-        setError("⚠ Invalid input format (check numbers)")
+        setError("⚠ Invalid input format")
       } else {
         setError("Prediction Failed")
       }
@@ -181,8 +184,8 @@ export default function HealthRiskPrediction() {
             {loading ? "Analyzing..." : "Predict"}
           </button>
 
-          {/* ✅ RESULT UI (ADDED, SAME DESIGN STYLE) */}
-          {result && result.success && (
+          {/* ✅ FINAL RESULT FIX (UI SAME, ONLY CONDITION FIXED) */}
+          {result && result.prediction && (
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
