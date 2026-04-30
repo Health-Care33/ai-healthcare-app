@@ -11,7 +11,6 @@ export default function FingerprintPrediction(){
   const [dragging,setDragging] = useState(false)
 
   const handleFile = (selectedFile)=>{
-
     if(!selectedFile) return
 
     setFile(selectedFile)
@@ -28,7 +27,6 @@ export default function FingerprintPrediction(){
   }
 
   const handlePredict = async (e)=>{
-
     e.preventDefault()
 
     if(!file){
@@ -43,20 +41,16 @@ export default function FingerprintPrediction(){
     setResult(null)
 
     try{
-
       const res = await axios.post(
-  "https://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
-  formData
-)
-
+        "https://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
+        formData
+      )
 
       setResult(res.data)
 
     }catch(err){
-
       console.log(err)
       alert("Prediction failed")
-
     }
 
     setLoading(false)
@@ -164,9 +158,9 @@ export default function FingerprintPrediction(){
 
           )}
 
-          {/* Result */}
+          {/* ✅ SUCCESS RESULT */}
 
-          {result && (
+          {result && result.success && (
 
             <motion.div
               initial={{opacity:0,y:20}}
@@ -183,8 +177,7 @@ export default function FingerprintPrediction(){
               </p>
 
               <p className="mb-3">
-                Confidence: {result.confidence.toFixed(2)}%
-
+                Confidence: {(Number(result?.confidence ?? 0)).toFixed(2)}%
               </p>
 
               {/* Confidence Bar */}
@@ -193,7 +186,7 @@ export default function FingerprintPrediction(){
 
                 <motion.div
                   initial={{width:0}}
-                 animate={{width:`${result.confidence}%`}}
+                  animate={{ width: `${result?.confidence ?? 0}%` }}
                   transition={{duration:1}}
                   className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
                 />
@@ -202,6 +195,14 @@ export default function FingerprintPrediction(){
 
             </motion.div>
 
+          )}
+
+          {/* ✅ ERROR RESULT */}
+
+          {result && !result.success && (
+            <div className="mt-6 text-red-400 text-center">
+              ❌ {result.error || "Prediction failed"}
+            </div>
           )}
 
         </form>
