@@ -23,26 +23,34 @@ export default function HealthRiskPrediction() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // ✅ FIX: proper type handling for selects + inputs
   const handleChange = (e) => {
+    const { name, value, type } = e.target
+
+    let finalValue = value
+
+    if (type === "number") {
+      finalValue = value === "" ? "" : Number(value)
+    }
+
+    // 🔥 FIX: convert select values to number
+    if (["gender", "smoking", "alcohol"].includes(name)) {
+      finalValue = value === "" ? "" : Number(value)
+    }
+
     setForm({
       ...form,
-      [e.target.name]:
-        e.target.type === "number"
-          ? e.target.value === ""
-            ? ""
-            : Number(e.target.value)
-          : e.target.value
+      [name]: finalValue
     })
   }
 
   const handleGender = (e) => {
     setForm({
       ...form,
-      gender: e.target.value
+      gender: Number(e.target.value)
     })
   }
 
-  // ✅ VALIDATION (same as yours)
   const isFormValid = () => {
 
     const {
@@ -54,7 +62,7 @@ export default function HealthRiskPrediction() {
     if (
       !name || !email || !age || !bmi ||
       !blood_pressure || !cholesterol || !glucose ||
-      smoking === "" || physical_activity === "" || alcohol === "" || !gender
+      smoking === "" || physical_activity === "" || alcohol === "" || gender === ""
     ) {
       setError("⚠ All fields are required")
       return false
@@ -76,8 +84,8 @@ export default function HealthRiskPrediction() {
     if (cholesterol < 100 || cholesterol > 400) return setError("⚠ Cholesterol must be between 100 - 400"), false
     if (glucose < 50 || glucose > 300) return setError("⚠ Glucose must be between 50 - 300"), false
     if (physical_activity < 0 || physical_activity > 10) return setError("⚠ Activity must be between 0 - 10"), false
-    if (![0, 1].includes(smoking)) return setError("⚠ Smoking must be 0 or 1"), false
-    if (![0, 1].includes(alcohol)) return setError("⚠ Alcohol must be 0 or 1"), false
+    if (![0, 1].includes(smoking)) return setError("⚠ Smoking must be Yes/No"), false
+    if (![0, 1].includes(alcohol)) return setError("⚠ Alcohol must be Yes/No"), false
 
     setError("")
     return true
@@ -103,36 +111,6 @@ export default function HealthRiskPrediction() {
     }
 
     setLoading(false)
-  }
-
-  const downloadPDF = () => {
-
-    const doc = new jsPDF()
-    const now = new Date()
-
-    doc.setFontSize(22)
-    doc.text("AI Healthcare Risk Report", 20, 20)
-
-    doc.setFontSize(12)
-    doc.text(`User: ${form.name}`, 20, 30)
-    doc.text(`Email: ${form.email}`, 20, 36)
-    doc.text(`Date: ${now.toLocaleDateString()}`, 150, 30)
-    doc.text(`Time: ${now.toLocaleTimeString()}`, 150, 36)
-
-    doc.text(`Age: ${form.age}`, 20, 50)
-    doc.text(`BMI: ${form.bmi}`, 20, 60)
-    doc.text(`BP: ${form.blood_pressure}`, 20, 70)
-    doc.text(`Cholesterol: ${form.cholesterol}`, 20, 80)
-    doc.text(`Glucose: ${form.glucose}`, 20, 90)
-    doc.text(`Smoking: ${form.smoking}`, 20, 100)
-    doc.text(`Activity: ${form.physical_activity}`, 20, 110)
-    doc.text(`Alcohol: ${form.alcohol}`, 20, 120)
-
-    doc.text("Prediction Result", 20, 140)
-    doc.text(`Risk: ${result.risk_level}`, 20, 150)
-    doc.text(`Confidence: ${result.confidence}`, 20, 160)
-
-    doc.save("health_risk_report.pdf")
   }
 
   return (
@@ -165,7 +143,12 @@ export default function HealthRiskPrediction() {
             <input type="number" name="bmi" placeholder="BMI" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            <select onChange={handleGender} className="p-2 text-white bg-white/20">
+            {/* ✅ GENDER FIX */}
+            <select
+              name="gender"
+              onChange={handleGender}
+              className="p-2 text-white bg-white/10 border border-white/20"
+            >
               <option value="" style={{ color: "black" }}>Select Gender</option>
               <option value="1" style={{ color: "black" }}>Male</option>
               <option value="0" style={{ color: "black" }}>Female</option>
@@ -180,14 +163,30 @@ export default function HealthRiskPrediction() {
             <input type="number" name="glucose" placeholder="Glucose" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            <input type="number" name="smoking" placeholder="Smoking (0/1)" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+            {/* ✅ SMOKING YES/NO FIX */}
+            <select
+              name="smoking"
+              onChange={handleChange}
+              className="p-2 text-white bg-white/10 border border-white/20"
+            >
+              <option value="">Smoking?</option>
+              <option value="1" style={{ color: "black" }}>Yes</option>
+              <option value="0" style={{ color: "black" }}>No</option>
+            </select>
 
             <input type="number" name="physical_activity" placeholder="Activity" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            <input type="number" name="alcohol" placeholder="Alcohol (0/1)" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+            {/* ✅ ALCOHOL YES/NO FIX */}
+            <select
+              name="alcohol"
+              onChange={handleChange}
+              className="p-2 text-white bg-white/10 border border-white/20"
+            >
+              <option value="">Alcohol?</option>
+              <option value="1" style={{ color: "black" }}>Yes</option>
+              <option value="0" style={{ color: "black" }}>No</option>
+            </select>
 
           </div>
 
@@ -198,54 +197,6 @@ export default function HealthRiskPrediction() {
           >
             {loading ? "Analyzing..." : "Predict"}
           </button>
-
-          {/* 🔥 FINAL ANIMATED RESULT */}
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              className="mt-6 p-6 bg-white/10 rounded-2xl border border-white/20"
-            >
-              <h2 className="text-2xl font-bold text-center mb-2">
-                Prediction Result
-              </h2>
-
-              <p className={`text-center text-xl font-semibold ${
-                result.risk_level === "High" ? "text-red-400" : "text-green-400"
-              }`}>
-                Risk: {result.risk_level}
-              </p>
-
-              <p className="text-center mb-4">
-                Confidence: {result.confidence ? `${result.confidence}%` : "N/A"}
-              </p>
-
-              {result.possible_diseases && (
-                <div>
-                  <h3 className="font-semibold mb-2">
-                    Possible Future Diseases:
-                  </h3>
-
-                  <ul className="list-disc pl-5 text-gray-200">
-                    {result.possible_diseases
-                      .split("\n")
-                      .filter(i => i.trim())
-                      .map((item, i) => (
-                        <li key={i}>{item.replace("-", "").trim()}</li>
-                      ))}
-                  </ul>
-                </div>
-              )}
-
-              <button
-                onClick={downloadPDF}
-                className="mt-6 w-full bg-green-600 px-4 py-2 rounded-xl"
-              >
-                Download PDF
-              </button>
-            </motion.div>
-          )}
 
         </div>
       </motion.div>
