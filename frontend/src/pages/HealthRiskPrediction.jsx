@@ -23,7 +23,6 @@ export default function HealthRiskPrediction() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // ✅ FIX: proper type handling for selects + inputs
   const handleChange = (e) => {
     const { name, value, type } = e.target
 
@@ -33,7 +32,6 @@ export default function HealthRiskPrediction() {
       finalValue = value === "" ? "" : Number(value)
     }
 
-    // 🔥 FIX: convert select values to number
     if (["gender", "smoking", "alcohol"].includes(name)) {
       finalValue = value === "" ? "" : Number(value)
     }
@@ -60,8 +58,8 @@ export default function HealthRiskPrediction() {
     } = form
 
     if (
-      !name || !email || !age || !bmi ||
-      !blood_pressure || !cholesterol || !glucose ||
+      !name || !email || age === "" || bmi === "" ||
+      blood_pressure === "" || cholesterol === "" || glucose === "" ||
       smoking === "" || physical_activity === "" || alcohol === "" || gender === ""
     ) {
       setError("⚠ All fields are required")
@@ -83,9 +81,12 @@ export default function HealthRiskPrediction() {
     if (blood_pressure < 50 || blood_pressure > 200) return setError("⚠ BP must be between 50 - 200"), false
     if (cholesterol < 100 || cholesterol > 400) return setError("⚠ Cholesterol must be between 100 - 400"), false
     if (glucose < 50 || glucose > 300) return setError("⚠ Glucose must be between 50 - 300"), false
-    if (physical_activity < 0 || physical_activity > 10) return setError("⚠ Activity must be between 0 - 10"), false
-    if (![0, 1].includes(smoking)) return setError("⚠ Smoking must be Yes/No"), false
-    if (![0, 1].includes(alcohol)) return setError("⚠ Alcohol must be Yes/No"), false
+
+    // 🔥 FIX: backend expects 0 or 1
+    if (![0,1].includes(physical_activity)) return setError("⚠ Activity must be Yes/No"), false
+
+    if (![0,1].includes(smoking)) return setError("⚠ Smoking must be Yes/No"), false
+    if (![0,1].includes(alcohol)) return setError("⚠ Alcohol must be Yes/No"), false
 
     setError("")
     return true
@@ -98,16 +99,33 @@ export default function HealthRiskPrediction() {
     setLoading(true)
 
     try {
+
+      // 🔥 IMPORTANT FIX: only required fields send karo
+      const payload = {
+        age: form.age,
+        bmi: form.bmi,
+        blood_pressure: form.blood_pressure,
+        cholesterol: form.cholesterol,
+        glucose: form.glucose,
+        smoking: form.smoking,
+        alcohol: form.alcohol,
+        physical_activity: form.physical_activity,
+        gender: form.gender
+      }
+
       const res = await axios.post(
         "https://ai-healthcare-backend-psnj.onrender.com/api/health-risk/predict",
-        form
+        payload
       )
 
-      setResult(res.data.data)
+      // 🔥 FIX: correct response handling
+      setResult(res.data)
 
     } catch (err) {
       console.error(err)
-      setError("Prediction Failed")
+
+      // 🔥 FIX: show real backend error
+      setError(err?.response?.data?.detail || "Prediction Failed")
     }
 
     setLoading(false)
@@ -143,7 +161,6 @@ export default function HealthRiskPrediction() {
             <input type="number" name="bmi" placeholder="BMI" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            {/* ✅ GENDER FIX */}
             <select
               name="gender"
               onChange={handleGender}
@@ -163,7 +180,6 @@ export default function HealthRiskPrediction() {
             <input type="number" name="glucose" placeholder="Glucose" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            {/* ✅ SMOKING YES/NO FIX */}
             <select
               name="smoking"
               onChange={handleChange}
@@ -174,10 +190,9 @@ export default function HealthRiskPrediction() {
               <option value="0" style={{ color: "black" }}>No</option>
             </select>
 
-            <input type="number" name="physical_activity" placeholder="Activity" onChange={handleChange}
+            <input type="number" name="physical_activity" placeholder="Activity (0 or 1)" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
-            {/* ✅ ALCOHOL YES/NO FIX */}
             <select
               name="alcohol"
               onChange={handleChange}
