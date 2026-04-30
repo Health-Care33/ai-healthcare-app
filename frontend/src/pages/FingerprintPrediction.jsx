@@ -34,6 +34,15 @@ export default function FingerprintPrediction(){
       return
     }
 
+    // 🔥 OPTIONAL WARNING (UI SAME, no design change)
+    const name = file.name.toLowerCase()
+    const valid = ["finger","fingerprint","thumb","blood","patient"]
+    const isValidName = valid.some(k => name.includes(k))
+
+    if(!isValidName){
+      alert("⚠️ For better accuracy, filename should include words like finger, blood, thumb")
+    }
+
     const formData = new FormData()
     formData.append("file",file)
 
@@ -43,16 +52,22 @@ export default function FingerprintPrediction(){
     try{
       const res = await axios.post(
         "https://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
-        formData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        }
       )
 
       setResult(res?.data || {})
 
     }catch(err){
-      console.log(err)
+      console.log("FULL ERROR:", err)
+
       setResult({
         success:false,
-        error:"Prediction failed"
+        error: err?.response?.data?.error || "Prediction failed"
       })
     }
 
@@ -180,14 +195,14 @@ export default function FingerprintPrediction(){
               </p>
 
               <p className="mb-3">
-                Confidence: {(Number(result?.confidence ?? 0)).toFixed(2)}%
+                Confidence: {(parseFloat(result?.confidence || 0)).toFixed(2)}%
               </p>
 
               <div className="w-full bg-white/20 rounded-full h-4">
 
                 <motion.div
                   initial={{width:0}}
-                  animate={{ width: `${Math.min(Number(result?.confidence ?? 0), 100)}%` }}
+                  animate={{ width: `${Math.min(parseFloat(result?.confidence || 0), 100)}%` }}
                   transition={{duration:1}}
                   className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
                 />
