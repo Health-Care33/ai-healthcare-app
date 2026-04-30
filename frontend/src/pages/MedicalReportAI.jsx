@@ -245,7 +245,8 @@ export default function MedicalReportAI(){
             <h2 className="font-bold mb-2 text-lg">
               🤖 AI Response
             </h2>
-            <p className="leading-relaxed">{answer}</p>
+           <p className="leading-relaxed" 
+           dangerouslySetInnerHTML={{ __html: answer }} />
           </motion.div>
         )}
 
