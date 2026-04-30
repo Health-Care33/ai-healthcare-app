@@ -30,34 +30,47 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # ================= FINGERPRINT VALIDATION =================
+        # ================= VALIDATION =================
         try:
             is_valid = is_fingerprint(file_path)
         except Exception as e:
-            print("⚠️ Fingerprint validation error:", e)
+            print("⚠️ Validation error:", e)
+
             return {
                 "success": False,
+                "blood_group": "Unknown",
+                "confidence": 0.0,
+                "warning": None,
+                "top_2": [],
                 "error": "Validation failed"
             }
 
         if not is_valid:
             return {
                 "success": False,
+                "blood_group": "Unknown",
+                "confidence": 0.0,
+                "warning": None,
+                "top_2": [],
                 "error": "Invalid fingerprint image"
             }
 
         # ================= PREDICTION =================
         result = predict_blood_group(file_path, file.filename)
 
-        if not result or result.get("error"):
-            raise HTTPException(
-                status_code=400,
-                detail=result.get("error", "Prediction failed")
-            )
+        # 🔥 Even if prediction failed → still safe response
+        if not result:
+            result = {
+                "success": False,
+                "blood_group": "Unknown",
+                "confidence": 0.0,
+                "warning": None,
+                "top_2": [],
+                "error": "Prediction returned empty result"
+            }
 
-        confidence = result.get("confidence", 0)
+        confidence = result.get("confidence", 0.0)
 
-        
         # ================= DB SAVE =================
         db_data = {
             "type": "fingerprint",
@@ -73,21 +86,27 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         except Exception as db_error:
             print("⚠️ MongoDB Error (non-fatal):", db_error)
 
-        # ================= RESPONSE =================
+        # ================= FINAL RESPONSE =================
         return {
-            "success": True,
-            "blood_group": result.get("blood_group"),
+            "success": result.get("success", False),
+            "blood_group": result.get("blood_group", "Unknown"),
             "confidence": confidence,
             "warning": result.get("warning"),
-            "top_2": result.get("top_2", [])
+            "top_2": result.get("top_2", []),
+            "error": result.get("error")
         }
-
-    except HTTPException as e:
-        raise e
 
     except Exception as e:
         print("❌ API ERROR:", e)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        return {
+            "success": False,
+            "blood_group": "Unknown",
+            "confidence": 0.0,
+            "warning": None,
+            "top_2": [],
+            "error": "Internal Server Error"
+        }
 
     finally:
         # ================= CLEANUP =================

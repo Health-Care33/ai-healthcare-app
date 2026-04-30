@@ -30,59 +30,73 @@ async def process_fingerprint_upload(file: UploadFile, user_id: str):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # ---------------- FINGERPRINT VALIDATION ----------------
+        # ---------------- VALIDATION ----------------
         try:
-            if not is_fingerprint(file_path):
-                return {
-                    "success": False,
-                    "error": "Invalid fingerprint image"
-                }
+            is_valid = is_fingerprint(file_path)
         except Exception as e:
             print("⚠️ Validation error:", e)
+
             return {
                 "success": False,
-                "error": "Validation failed"
+                "blood_group": "Unknown",
+                "confidence": 0.0,
+                "warning": None,
+                "top_2": [],
+                "error": "Validation failed",
+                "details": str(e)
+            }
+
+        if not is_valid:
+            return {
+                "success": False,
+                "blood_group": "Unknown",
+                "confidence": 0.0,
+                "warning": None,
+                "top_2": [],
+                "error": "Invalid fingerprint image"
             }
 
         # ---------------- PREDICTION ----------------
-        prediction = predict_blood_group(file_path, file.filename)
+        result = predict_blood_group(file_path, file.filename)
 
-        if not prediction or prediction.get("error"):
-            raise HTTPException(
-                status_code=400,
-                detail=prediction.get("error", "Prediction failed")
-            )
+        if not result:
+            result = {
+                "success": False,
+                "blood_group": "Unknown",
+                "confidence": 0.0,
+                "warning": None,
+                "top_2": [],
+                "error": "Prediction returned empty result"
+            }
 
-        confidence = prediction.get("confidence", 0)
+        confidence = result.get("confidence", 0.0)
 
         # ---------------- DB SAVE ----------------
-        result_data = {
+        db_data = {
             "user_id": user_id,
             "type": "fingerprint",
             "file": unique_name,
-            "blood_group": prediction.get("blood_group"),
+            "blood_group": result.get("blood_group", "Unknown"),
             "confidence": confidence,
-            "warning": prediction.get("warning"),
-            "top_2": prediction.get("top_2", []),
+            "warning": result.get("warning"),
+            "top_2": result.get("top_2", []),
             "created_at": datetime.utcnow()
         }
 
         try:
-            await db.fingerprint_predictions.insert_one(result_data)
+            await db.fingerprint_predictions.insert_one(db_data)
         except Exception as db_error:
             print("⚠️ MongoDB Error (non-fatal):", db_error)
 
         # ---------------- FINAL RESPONSE ----------------
         return {
-            "success": True,
-            "blood_group": prediction.get("blood_group"),
+            "success": result.get("success", False),
+            "blood_group": result.get("blood_group", "Unknown"),
             "confidence": confidence,
-            "warning": (
-                "Low confidence ⚠️ (model unsure, result may be inaccurate)"
-                if confidence < 40
-                else "High confidence ✅"
-            ),
-            "top_2": prediction.get("top_2", [])
+            "warning": result.get("warning"),
+            "top_2": result.get("top_2", []),
+            "error": result.get("error"),
+            "details": result.get("details")
         }
 
     except HTTPException as e:
@@ -90,7 +104,16 @@ async def process_fingerprint_upload(file: UploadFile, user_id: str):
 
     except Exception as e:
         print("❌ SERVICE ERROR:", e)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        return {
+            "success": False,
+            "blood_group": "Unknown",
+            "confidence": 0.0,
+            "warning": None,
+            "top_2": [],
+            "error": "Internal Server Error",
+            "details": str(e)
+        }
 
     finally:
         # ---------------- CLEANUP ----------------

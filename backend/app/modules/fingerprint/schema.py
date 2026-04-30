@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 
-# ================= TOP-2 PREDICTION =================
+# ================= TOP-2 =================
 class TopPrediction(BaseModel):
     blood_group: str = Field(..., example="A+")
     confidence: float = Field(..., ge=0, le=100, example=85.3)
@@ -12,13 +12,14 @@ class TopPrediction(BaseModel):
 class FingerprintPredictionResponse(BaseModel):
     success: bool = Field(..., example=True)
 
-    blood_group: Optional[str] = Field(default=None, example="A+")   # ✅ FIX
-    confidence: Optional[float] = Field(default=None, ge=0, le=100)  # ✅ FIX
+    blood_group: str = Field(default="Unknown", example="A+")
+    confidence: float = Field(default=0.0, ge=0, le=100)
 
-    warning: Optional[str] = Field(default=None)
-    top_2: List[TopPrediction] = Field(default_factory=list)         # ✅ FIX
+    warning: Optional[str] = None
+    top_2: List[TopPrediction] = Field(default_factory=list)
 
-    error: Optional[str] = None   # 🔥 IMPORTANT (for failure cases)
+    error: Optional[str] = None
+    details: Optional[str] = None   # 🔥 for debug / logs
 
 
 # ================= DB SCHEMA =================
@@ -28,8 +29,8 @@ class FingerprintPredictionDB(BaseModel):
     type: str = "fingerprint"
     file: Optional[str] = None
 
-    blood_group: Optional[str] = None     # ✅ FIX
-    confidence: Optional[float] = None    # ✅ FIX
+    blood_group: str = "Unknown"
+    confidence: float = 0.0
 
     warning: Optional[str] = None
     top_2: List[TopPrediction] = Field(default_factory=list)
