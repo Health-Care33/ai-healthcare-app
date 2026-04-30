@@ -4,7 +4,6 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from app.modules.fingerprint.predictor import predict_blood_group
-from app.modules.fingerprint.model.fingerprint_validation import is_fingerprint
 from app.database.mongodb import db
 
 router = APIRouter(tags=["Fingerprint"])
@@ -24,36 +23,20 @@ async def predict_fingerprint(file: UploadFile = File(...)):
 
     try:
 
-        # 1️⃣ VALIDATE FILE TYPE
+        # 1️⃣ FILE TYPE CHECK
         if not file.content_type or not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Only image files allowed")
 
-        # 2️⃣ GENERATE FILE NAME
+        # 2️⃣ UNIQUE FILE NAME
         unique_name = f"{uuid.uuid4()}_{file.filename}"
         file_path = os.path.join(UPLOAD_DIR, unique_name)
 
-        # 🔥 IMPORTANT FIX (STREAM RESET)
+        # 3️⃣ SAVE FILE
         file.file.seek(0)
-
-        # 3️⃣ SAVE FILE SAFELY
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 4️⃣ VALIDATION (ONLY PATH BASED)
-        try:
-            if not is_fingerprint(file_path):
-                return {
-                    "success": False,
-                    "error": "Invalid fingerprint image"
-                }
-        except Exception as e:
-            return {
-                "success": False,
-                "error": "Validation failed",
-                "details": str(e)
-            }
-
-        # 5️⃣ PREDICTION
+        # 4️⃣ DIRECT PREDICTION (filename check inside predictor)
         result = predict_blood_group(file_path, file.filename)
 
         if not result or not result.get("success"):
@@ -62,7 +45,7 @@ async def predict_fingerprint(file: UploadFile = File(...)):
                 "error": result.get("error", "Prediction failed")
             }
 
-        # 6️⃣ DB SAVE (NON-BLOCKING)
+        # 5️⃣ SAVE TO DB (optional but kept)
         try:
             await db.fingerprint_predictions.insert_one({
                 "type": "fingerprint",
@@ -74,7 +57,7 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         except Exception as db_error:
             print("⚠️ DB Error (ignored):", db_error)
 
-        # 7️⃣ RESPONSE
+        # 6️⃣ FINAL RESPONSE
         return {
             "success": True,
             "blood_group": result.get("blood_group"),
@@ -95,7 +78,7 @@ async def predict_fingerprint(file: UploadFile = File(...)):
         }
 
     finally:
-        # 8️⃣ CLEANUP
+        # 7️⃣ CLEANUP FILE
         try:
             if file_path and os.path.exists(file_path):
                 os.remove(file_path)

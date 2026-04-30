@@ -4,8 +4,6 @@ import os
 import threading
 from tensorflow.keras.models import load_model
 
-from app.modules.fingerprint.model.fingerprint_validation import is_fingerprint
-
 # ================= PATH =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "fingerprint_model.h5")
@@ -32,7 +30,7 @@ def load_fingerprint_model():
     return model
 
 
-# ================= FILE NAME VALIDATION =================
+# ================= FILE NAME CHECK =================
 def is_valid_fingerprint_filename(filename: str):
     if not filename:
         return False
@@ -64,41 +62,32 @@ def preprocess_image(image_path):
     return np.expand_dims(img, axis=0)
 
 
-# ================= MAIN PREDICTOR =================
+# ================= MAIN =================
 def predict_blood_group(image_path, filename=None):
 
     try:
 
-        # 1️⃣ FILE NAME CHECK
+        # ✅ 1️⃣ FILE NAME CHECK
         if not is_valid_fingerprint_filename(filename):
             return {
                 "success": False,
-                "blood_group": "Unknown",
-                "confidence": 0.0,
-                "error": "Invalid filename (must contain finger/blood/patient keyword)"
+                "error": "Invalid filename (use finger/blood/patient keyword)"
             }
 
-        # 2️⃣ FINGERPRINT VALIDATION
-        if not is_fingerprint(image_path):
-            return {
-                "success": False,
-                "blood_group": "Unknown",
-                "confidence": 0.0,
-                "error": "Invalid fingerprint image"
-            }
-
-        # 3️⃣ MODEL LOAD
+        # ✅ 2️⃣ MODEL LOAD
         model_instance = load_fingerprint_model()
 
+        # ✅ 3️⃣ PREPROCESS
         img = preprocess_image(image_path)
 
+        # ✅ 4️⃣ PREDICT
         predictions = model_instance.predict(img, verbose=0)[0]
         predictions = np.nan_to_num(predictions)
 
-        # 4️⃣ FINAL PREDICTION (NO CONFIDENCE FILTER)
         top_index = int(np.argmax(predictions))
         top_conf = float(predictions[top_index])
 
+        # ✅ 5️⃣ RESPONSE
         return {
             "success": True,
             "blood_group": CLASS_NAMES[top_index],
@@ -115,7 +104,5 @@ def predict_blood_group(image_path, filename=None):
     except Exception as e:
         return {
             "success": False,
-            "blood_group": "Unknown",
-            "confidence": 0.0,
             "error": str(e)
         }

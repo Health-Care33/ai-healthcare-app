@@ -17,8 +17,8 @@ class FingerprintPredictionResponse(BaseModel):
 
     top_2: List[TopPrediction] = Field(default_factory=list)
 
-    error: Optional[str] = None
-    details: Optional[str] = None
+    # ✅ simplified error handling
+    error: Optional[str] = Field(default=None, example="Invalid filename")
 
 
 # ================= DATABASE SCHEMA =================
@@ -32,6 +32,9 @@ class FingerprintPredictionDB(BaseModel):
     confidence: Optional[float] = 0.0
 
     top_2: List[TopPrediction] = Field(default_factory=list)
+
+    # ✅ optional timestamp (future use)
+    created_at: Optional[str] = None
 
     model_config = {
         "from_attributes": True
