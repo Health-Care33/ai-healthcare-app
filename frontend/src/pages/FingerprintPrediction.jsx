@@ -58,34 +58,13 @@ export default function HealthRiskPrediction() {
     } = form
 
     if (
-      !name || !email || age === "" || bmi === "" ||
-      blood_pressure === "" || cholesterol === "" || glucose === "" ||
+      !name || !email || !age || !bmi ||
+      !blood_pressure || !cholesterol || !glucose ||
       smoking === "" || physical_activity === "" || alcohol === "" || gender === ""
     ) {
       setError("⚠ All fields are required")
       return false
     }
-
-    if (!/^[A-Za-z ]+$/.test(name)) {
-      setError("⚠ Name should contain only letters")
-      return false
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("⚠ Invalid email format")
-      return false
-    }
-
-    if (age < 1 || age > 120) return setError("⚠ Age must be between 1 - 120"), false
-    if (bmi < 10 || bmi > 60) return setError("⚠ BMI must be between 10 - 60"), false
-    if (blood_pressure < 50 || blood_pressure > 200) return setError("⚠ BP must be between 50 - 200"), false
-    if (cholesterol < 100 || cholesterol > 400) return setError("⚠ Cholesterol must be between 100 - 400"), false
-    if (glucose < 50 || glucose > 300) return setError("⚠ Glucose must be between 50 - 300"), false
-
-    // 🔥 backend expects 0 or 1
-    if (![0,1].includes(physical_activity)) return setError("⚠ Activity must be Yes/No"), false
-    if (![0,1].includes(smoking)) return setError("⚠ Smoking must be Yes/No"), false
-    if (![0,1].includes(alcohol)) return setError("⚠ Alcohol must be Yes/No"), false
 
     setError("")
     return true
@@ -96,36 +75,25 @@ export default function HealthRiskPrediction() {
     if (!isFormValid()) return
 
     setLoading(true)
-    setError("")
     setResult(null)
 
     try {
-
-      // ✅ only required fields send
-      const payload = {
-        age: form.age,
-        bmi: form.bmi,
-        blood_pressure: form.blood_pressure,
-        cholesterol: form.cholesterol,
-        glucose: form.glucose,
-        smoking: form.smoking,
-        alcohol: form.alcohol,
-        physical_activity: form.physical_activity,
-        gender: form.gender
-      }
-
       const res = await axios.post(
         "https://ai-healthcare-backend-psnj.onrender.com/api/health-risk/predict",
-        payload
+        form
       )
 
-      console.log("API RESPONSE:", res.data)
-
+      // ✅ FIX: correct response mapping
       setResult(res.data)
 
     } catch (err) {
       console.error(err)
-      setError(err?.response?.data?.detail || "Prediction Failed")
+
+      if (err.response?.status === 422) {
+        setError("⚠ Invalid input format (check numbers)")
+      } else {
+        setError("Prediction Failed")
+      }
     }
 
     setLoading(false)
@@ -166,9 +134,9 @@ export default function HealthRiskPrediction() {
               onChange={handleGender}
               className="p-2 text-white bg-white/10 border border-white/20"
             >
-              <option value="">Select Gender</option>
-              <option value="1">Male</option>
-              <option value="0">Female</option>
+              <option value="" style={{ color: "black" }}>Select Gender</option>
+              <option value="1" style={{ color: "black" }}>Male</option>
+              <option value="0" style={{ color: "black" }}>Female</option>
             </select>
 
             <input type="number" name="blood_pressure" placeholder="BP" onChange={handleChange}
@@ -186,11 +154,11 @@ export default function HealthRiskPrediction() {
               className="p-2 text-white bg-white/10 border border-white/20"
             >
               <option value="">Smoking?</option>
-              <option value="1">Yes</option>
-              <option value="0">No</option>
+              <option value="1" style={{ color: "black" }}>Yes</option>
+              <option value="0" style={{ color: "black" }}>No</option>
             </select>
 
-            <input type="number" name="physical_activity" placeholder="Activity (0 or 1)" onChange={handleChange}
+            <input type="number" name="physical_activity" placeholder="Activity" onChange={handleChange}
               className="p-2 text-white bg-white/20 placeholder-gray-300" />
 
             <select
@@ -199,8 +167,8 @@ export default function HealthRiskPrediction() {
               className="p-2 text-white bg-white/10 border border-white/20"
             >
               <option value="">Alcohol?</option>
-              <option value="1">Yes</option>
-              <option value="0">No</option>
+              <option value="1" style={{ color: "black" }}>Yes</option>
+              <option value="0" style={{ color: "black" }}>No</option>
             </select>
 
           </div>
@@ -213,35 +181,33 @@ export default function HealthRiskPrediction() {
             {loading ? "Analyzing..." : "Predict"}
           </button>
 
-          {/* ✅ RESULT SHOW */}
-
+          {/* ✅ RESULT UI (ADDED, SAME DESIGN STYLE) */}
           {result && result.success && (
+
             <motion.div
-              initial={{opacity:0,y:20}}
-              animate={{opacity:1,y:0}}
-              className="mt-6 p-6 bg-white/10 rounded-xl border border-white/20 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 bg-white/10 p-6 rounded-xl text-white border border-white/20"
             >
 
-              <h2 className="text-2xl font-bold mb-2">
-                Risk Level
+              <h2 className="text-xl font-bold mb-2 text-center">
+                Prediction Result
               </h2>
 
-              <p className="text-3xl font-bold text-purple-300 mb-3">
+              <p className="text-center text-3xl font-bold text-purple-400">
                 {result.prediction}
               </p>
 
-              <p className="mb-3">
-                Confidence: {(result.confidence || 0).toFixed(2)}%
+              <p className="text-center mt-2">
+                Confidence: {Number(result.confidence || 0).toFixed(2)}%
               </p>
 
-              <div className="mt-4 text-left">
-                <h3 className="font-semibold mb-2">Possible Diseases:</h3>
-                <p className="text-sm text-gray-300 whitespace-pre-line">
-                  {result.possible_diseases}
-                </p>
+              <div className="mt-4 text-sm text-gray-200 whitespace-pre-line">
+                {result.possible_diseases}
               </div>
 
             </motion.div>
+
           )}
 
         </div>
