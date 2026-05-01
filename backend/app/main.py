@@ -109,7 +109,9 @@ app.add_middleware(
 # ---------------- SESSION ----------------
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET", "super-secret-key-change-this")
+    secret_key=os.getenv("SESSION_SECRET", "super-secret-key-change-this"),
+    same_site="none",
+    https_only=True
 )
 
 
