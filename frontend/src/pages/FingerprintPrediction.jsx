@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import axios from "axios"
 import { motion } from "framer-motion"
 
@@ -10,9 +10,27 @@ export default function FingerprintPrediction(){
   const [loading,setLoading] = useState(false)
   const [dragging,setDragging] = useState(false)
 
+  // ✅ cleanup preview (memory fix)
+  useEffect(()=>{
+    return ()=>{
+      if(preview) URL.revokeObjectURL(preview)
+    }
+  },[preview])
+
   const handleFile = (selectedFile)=>{
 
     if(!selectedFile) return
+
+    // ✅ validation
+    if (!selectedFile.type.startsWith("image/")) {
+      alert("Only image files allowed")
+      return
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      alert("Max file size 5MB")
+      return
+    }
 
     setFile(selectedFile)
     setPreview(URL.createObjectURL(selectedFile))
@@ -45,8 +63,13 @@ export default function FingerprintPrediction(){
     try{
 
       const res = await axios.post(
-        "http://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
-        formData
+        "https://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
+        formData,
+        {
+          headers:{
+            "Content-Type":"multipart/form-data"
+          }
+        }
       )
 
       setResult(res.data)
@@ -54,11 +77,19 @@ export default function FingerprintPrediction(){
     }catch(err){
 
       console.log(err)
-      alert("Prediction failed")
+      alert(err?.response?.data?.detail || "Prediction failed")
 
     }
 
     setLoading(false)
+  }
+
+  // ✅ confidence safe calc
+  const getConfidence = () => {
+    if(!result) return 0
+    return result.confidence <= 1
+      ? (result.confidence * 100).toFixed(2)
+      : result.confidence.toFixed(2)
   }
 
   return(
@@ -82,7 +113,6 @@ export default function FingerprintPrediction(){
           </h1>
 
           {/* Drag & Drop */}
-
           <div
             onDragOver={(e)=>{e.preventDefault();setDragging(true)}}
             onDragLeave={()=>setDragging(false)}
@@ -117,56 +147,41 @@ export default function FingerprintPrediction(){
           </div>
 
           {/* Preview */}
-
           {preview && (
-
             <motion.div
               initial={{opacity:0}}
               animate={{opacity:1}}
               className="mt-6 flex justify-center"
             >
-
               <img
                 src={preview}
                 alt="preview"
                 className="w-40 h-40 object-cover rounded-xl border border-white/30"
               />
-
             </motion.div>
-
           )}
 
-          {/* Predict Button */}
-
+          {/* Button */}
           <button
             disabled={loading}
             className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-xl font-semibold hover:scale-105 transition"
           >
-
             {loading ? "AI Analyzing..." : "Predict Blood Group"}
-
           </button>
 
           {/* Loader */}
-
           {loading && (
-
             <div className="flex justify-center mt-6">
-
               <motion.div
                 animate={{rotate:360}}
                 transition={{repeat:Infinity,duration:1}}
                 className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full"
               />
-
             </div>
-
           )}
 
           {/* Result */}
-
           {result && (
-
             <motion.div
               initial={{opacity:0,y:20}}
               animate={{opacity:1,y:0}}
@@ -182,24 +197,20 @@ export default function FingerprintPrediction(){
               </p>
 
               <p className="mb-3">
-                Confidence: {(result.confidence * 100).toFixed(2)}%
+                Confidence: {getConfidence()}%
               </p>
 
-              {/* Confidence Bar */}
-
+              {/* Bar */}
               <div className="w-full bg-white/20 rounded-full h-4">
-
                 <motion.div
                   initial={{width:0}}
-                  animate={{width:`${result.confidence * 100}%`}}
+                  animate={{width:`${getConfidence()}%`}}
                   transition={{duration:1}}
                   className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
                 />
-
               </div>
 
             </motion.div>
-
           )}
 
         </form>
