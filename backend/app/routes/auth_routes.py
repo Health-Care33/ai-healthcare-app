@@ -113,7 +113,7 @@ async def google_callback(request: Request):
         if not email:
             raise HTTPException(status_code=400, detail="Email not found")
 
-        # DB check / insert
+        # ✅ DB check / insert
         db_user = await user_collection.find_one({"email": email})
 
         if not db_user:
@@ -123,7 +123,7 @@ async def google_callback(request: Request):
                 "created_at": datetime.utcnow()
             })
 
-        # JWT create
+        # ✅ JWT create
         payload = {
             "email": email,
             "exp": datetime.utcnow() + timedelta(hours=24)
@@ -131,9 +131,9 @@ async def google_callback(request: Request):
 
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-        # ✅ FIXED REDIRECT (IMPORTANT CHANGE)
+        # 🔥 FINAL FIX (Netlify URL)
         return RedirectResponse(
-            f"https://ai-healthcare-app.vercel.app/google-success?token={access_token}"
+            f"https://healthdepartm.netlify.app/google-success?token={access_token}"
         )
 
     except Exception as e:
