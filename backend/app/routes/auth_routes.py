@@ -95,22 +95,25 @@ async def google_callback(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)
 
-        # 🔥 FIX: userinfo safely fetch
+        # ✅ ALWAYS fetch userinfo safely (no crash)
         user = token.get("userinfo")
-
         if not user:
-            resp = await oauth.google.get("userinfo", token=token)
+            resp = await oauth.google.get(
+                "https://openidconnect.googleapis.com/v1/userinfo",
+                token=token
+            )
             user = resp.json()
 
         if not user:
             raise HTTPException(status_code=400, detail="User info not found")
 
         email = user.get("email")
-        name = user.get("name")
+        name = user.get("name", "")
 
         if not email:
             raise HTTPException(status_code=400, detail="Email not found")
 
+        # DB check
         db_user = await user_collection.find_one({"email": email})
 
         if not db_user:
@@ -120,6 +123,7 @@ async def google_callback(request: Request):
                 "created_at": datetime.utcnow()
             })
 
+        # JWT
         payload = {
             "email": email,
             "exp": datetime.utcnow() + timedelta(hours=24)
@@ -127,10 +131,11 @@ async def google_callback(request: Request):
 
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
+        # ✅ FINAL REDIRECT
         return RedirectResponse(
             f"https://ai-healthcare-app-6uqr-g6s51z6o5-health-care33s-projects.vercel.app/google-success?token={access_token}"
         )
 
     except Exception as e:
         print("GOOGLE CALLBACK ERROR:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="OAuth failed")
