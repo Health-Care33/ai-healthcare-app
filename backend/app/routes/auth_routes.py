@@ -117,5 +117,5 @@ async def google_callback(request: Request):
     access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
     return RedirectResponse(
-         f"https://deft-peony-9e6f9d.netlify.app/google-success?token={access_token}"
-    )
+    f"https://ai-healthcare-app-6uqr-g6s51z6o5-health-care33s-projects.vercel.app/google-success?token={access_token}"
+)
