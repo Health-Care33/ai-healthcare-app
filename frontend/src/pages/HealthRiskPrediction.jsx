@@ -82,9 +82,7 @@ export default function HealthRiskPrediction() {
     if (cholesterol < 100 || cholesterol > 400) return setError("⚠ Cholesterol must be between 100 - 400"), false
     if (glucose < 50 || glucose > 300) return setError("⚠ Glucose must be between 50 - 300"), false
 
-    // 🔥 FIX: backend expects 0 or 1
     if (![0,1].includes(physical_activity)) return setError("⚠ Activity must be Yes/No"), false
-
     if (![0,1].includes(smoking)) return setError("⚠ Smoking must be Yes/No"), false
     if (![0,1].includes(alcohol)) return setError("⚠ Alcohol must be Yes/No"), false
 
@@ -99,8 +97,6 @@ export default function HealthRiskPrediction() {
     setLoading(true)
 
     try {
-
-      // 🔥 IMPORTANT FIX: only required fields send karo
       const payload = {
         age: form.age,
         bmi: form.bmi,
@@ -118,13 +114,10 @@ export default function HealthRiskPrediction() {
         payload
       )
 
-      // 🔥 FIX: correct response handling
       setResult(res.data)
 
     } catch (err) {
       console.error(err)
-
-      // 🔥 FIX: show real backend error
       setError(err?.response?.data?.detail || "Prediction Failed")
     }
 
@@ -212,6 +205,50 @@ export default function HealthRiskPrediction() {
           >
             {loading ? "Analyzing..." : "Predict"}
           </button>
+
+          {/* 🔥 RESULT UI (ONLY ADDED PART) */}
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-8 bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-3xl text-center shadow-lg"
+            >
+              <h2 className="text-2xl font-bold mb-3">
+                Prediction:
+                <span
+                  className={`ml-2 ${
+                    result.prediction === "High"
+                      ? "text-red-400"
+                      : "text-green-400"
+                  }`}
+                >
+                  {result.prediction}
+                </span>
+              </h2>
+
+              <p className="text-lg mb-2">
+                Confidence: <span className="font-semibold">{result.confidence}%</span>
+              </p>
+
+              <div className="w-full bg-white/20 rounded-full h-3 mb-4 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${result.confidence}%` }}
+                  transition={{ duration: 0.8 }}
+                  className={`h-3 ${
+                    result.prediction === "High"
+                      ? "bg-red-500"
+                      : "bg-green-500"
+                  }`}
+                />
+              </div>
+
+              <p className="text-sm text-gray-300 leading-relaxed">
+                {result.possible_diseases}
+              </p>
+            </motion.div>
+          )}
 
         </div>
       </motion.div>
