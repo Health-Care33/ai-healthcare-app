@@ -95,7 +95,7 @@ async def google_callback(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)
 
-        # ✅ ALWAYS fetch userinfo safely (no crash)
+        # ✅ Fetch user info safely
         user = token.get("userinfo")
         if not user:
             resp = await oauth.google.get(
@@ -113,7 +113,7 @@ async def google_callback(request: Request):
         if not email:
             raise HTTPException(status_code=400, detail="Email not found")
 
-        # DB check
+        # DB check / insert
         db_user = await user_collection.find_one({"email": email})
 
         if not db_user:
@@ -123,7 +123,7 @@ async def google_callback(request: Request):
                 "created_at": datetime.utcnow()
             })
 
-        # JWT
+        # JWT create
         payload = {
             "email": email,
             "exp": datetime.utcnow() + timedelta(hours=24)
@@ -131,9 +131,9 @@ async def google_callback(request: Request):
 
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-        # ✅ FINAL REDIRECT
+        # ✅ FIXED REDIRECT (IMPORTANT CHANGE)
         return RedirectResponse(
-            f"https://ai-healthcare-app-6uqr-g6s51z6o5-health-care33s-projects.vercel.app/google-success?token={access_token}"
+            f"https://ai-healthcare-app.vercel.app/google-success?token={access_token}"
         )
 
     except Exception as e:
