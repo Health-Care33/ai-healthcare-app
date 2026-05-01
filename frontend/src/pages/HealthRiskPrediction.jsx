@@ -23,6 +23,40 @@ export default function HealthRiskPrediction() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // 🔥 NEW: format diseases
+  const formatDiseases = (text) => {
+    if (!text) return []
+
+    return text
+      .replace(/\*/g, "")
+      .split(/,|\n/)
+      .map(item => item.trim())
+      .filter(item => item.length > 0)
+  }
+
+  // 🔥 NEW: PDF function
+  const downloadPDF = () => {
+    const doc = new jsPDF()
+
+    doc.setFontSize(16)
+    doc.text("AI Health Risk Report", 20, 20)
+
+    doc.setFontSize(12)
+    doc.text(`Name: ${form.name}`, 20, 35)
+    doc.text(`Prediction: ${result.prediction}`, 20, 45)
+    doc.text(`Confidence: ${result.confidence}%`, 20, 55)
+
+    const diseases = formatDiseases(result.possible_diseases)
+
+    doc.text("Possible Diseases:", 20, 70)
+
+    diseases.forEach((d, i) => {
+      doc.text(`- ${d}`, 25, 80 + i * 10)
+    })
+
+    doc.save("health_report.pdf")
+  }
+
   const handleChange = (e) => {
     const { name, value, type } = e.target
 
@@ -206,7 +240,7 @@ export default function HealthRiskPrediction() {
             {loading ? "Analyzing..." : "Predict"}
           </button>
 
-          {/* 🔥 RESULT UI (ONLY ADDED PART) */}
+          {/* 🔥 RESULT UI */}
           {result && (
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
@@ -216,14 +250,8 @@ export default function HealthRiskPrediction() {
             >
               <h2 className="text-2xl font-bold mb-3">
                 Prediction:
-                <span
-                  className={`ml-2 ${
-                    result.prediction === "High"
-                      ? "text-red-400"
-                      : "text-green-400"
-                  }`}
-                >
-                  {result.prediction}
+                <span className={`ml-2 ${result.prediction === "High" ? "text-red-400" : "text-green-400"}`}>
+                  {result.prediction} Risk
                 </span>
               </h2>
 
@@ -236,17 +264,31 @@ export default function HealthRiskPrediction() {
                   initial={{ width: 0 }}
                   animate={{ width: `${result.confidence}%` }}
                   transition={{ duration: 0.8 }}
-                  className={`h-3 ${
-                    result.prediction === "High"
-                      ? "bg-red-500"
-                      : "bg-green-500"
-                  }`}
+                  className={`h-3 ${result.prediction === "High" ? "bg-red-500" : "bg-green-500"}`}
                 />
               </div>
 
-              <p className="text-sm text-gray-300 leading-relaxed">
-                {result.possible_diseases}
-              </p>
+              {/* ✅ Clean Diseases List */}
+              <div className="text-left mt-4">
+                <p className="font-semibold text-white mb-2">
+                  Possible Future Diseases:
+                </p>
+
+                <ul className="list-disc pl-5 text-gray-300 space-y-1">
+                  {formatDiseases(result.possible_diseases).map((d, i) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* ✅ PDF Button */}
+              <button
+                onClick={downloadPDF}
+                className="mt-6 bg-green-600 px-4 py-2 rounded-xl hover:bg-green-700 transition"
+              >
+                Download Report PDF
+              </button>
+
             </motion.div>
           )}
 

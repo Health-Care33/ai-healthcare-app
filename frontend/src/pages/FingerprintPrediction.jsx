@@ -1,220 +1,213 @@
 import { useState } from "react"
 import axios from "axios"
-import jsPDF from "jspdf"
 import { motion } from "framer-motion"
 
-export default function HealthRiskPrediction() {
+export default function FingerprintPrediction(){
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    age: "",
-    bmi: "",
-    blood_pressure: "",
-    cholesterol: "",
-    glucose: "",
-    smoking: "",
-    physical_activity: "",
-    alcohol: "",
-    gender: ""
-  })
+  const [file,setFile] = useState(null)
+  const [preview,setPreview] = useState(null)
+  const [result,setResult] = useState(null)
+  const [loading,setLoading] = useState(false)
+  const [dragging,setDragging] = useState(false)
 
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const handleFile = (selectedFile)=>{
 
-  const handleChange = (e) => {
-    const { name, value, type } = e.target
+    if(!selectedFile) return
 
-    let finalValue = value
-
-    if (type === "number") {
-      finalValue = value === "" ? "" : Number(value)
-    }
-
-    if (["gender", "smoking", "alcohol"].includes(name)) {
-      finalValue = value === "" ? "" : Number(value)
-    }
-
-    setForm({
-      ...form,
-      [name]: finalValue
-    })
+    setFile(selectedFile)
+    setPreview(URL.createObjectURL(selectedFile))
+    setResult(null)
   }
 
-  const handleGender = (e) => {
-    setForm({
-      ...form,
-      gender: Number(e.target.value)
-    })
+  const handleDrop = (e)=>{
+    e.preventDefault()
+    setDragging(false)
+
+    const droppedFile = e.dataTransfer.files[0]
+    handleFile(droppedFile)
   }
 
-  const isFormValid = () => {
+  const handlePredict = async (e)=>{
 
-    const {
-      name, email, age, bmi,
-      blood_pressure, cholesterol, glucose,
-      smoking, physical_activity, alcohol, gender
-    } = form
+    e.preventDefault()
 
-    if (
-      !name || !email || !age || !bmi ||
-      !blood_pressure || !cholesterol || !glucose ||
-      smoking === "" || physical_activity === "" || alcohol === "" || gender === ""
-    ) {
-      setError("⚠ All fields are required")
-      return false
+    if(!file){
+      alert("Please upload fingerprint image")
+      return
     }
 
-    setError("")
-    return true
-  }
-
-  const predictRisk = async () => {
-
-    if (!isFormValid()) return
+    const formData = new FormData()
+    formData.append("file",file)
 
     setLoading(true)
     setResult(null)
-    setError("")
 
-    try {
+    try{
+
       const res = await axios.post(
-        "https://ai-healthcare-backend-psnj.onrender.com/api/health-risk/predict",
-        form
+        "http://ai-healthcare-backend-psnj.onrender.com/api/fingerprint/predict-blood-group",
+        formData
       )
 
-      console.log("API RESPONSE 👉", res.data)
-
-      // ✅ IMPORTANT FIX
       setResult(res.data)
 
-    } catch (err) {
-      console.error(err)
+    }catch(err){
 
-      if (err.response?.status === 422) {
-        setError("⚠ Invalid input format")
-      } else {
-        setError("Prediction Failed")
-      }
+      console.log(err)
+      alert("Prediction failed")
+
     }
 
     setLoading(false)
   }
 
-  return (
+  return(
 
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 via-purple-900 to-black p-10">
 
-      <motion.div className="w-full max-w-4xl">
+      <motion.div
+        initial={{opacity:0,scale:0.9}}
+        animate={{opacity:1,scale:1}}
+        transition={{duration:0.6}}
+        className="w-full max-w-xl"
+      >
 
-        <div className="bg-white/10 p-10 rounded-3xl text-white">
+        <form
+          onSubmit={handlePredict}
+          className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-10"
+        >
 
-          <h1 className="text-3xl font-bold text-center mb-6">
-            AI Health Risk Prediction
+          <h1 className="text-4xl font-bold text-center text-white mb-8">
+            Fingerprint Blood Group AI
           </h1>
 
-          {error && (
-            <p className="text-red-400 text-center mb-4">{error}</p>
-          )}
+          {/* Drag & Drop */}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div
+            onDragOver={(e)=>{e.preventDefault();setDragging(true)}}
+            onDragLeave={()=>setDragging(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition 
+            ${dragging ? "border-purple-400 bg-purple-500/10" : "border-white/30"}`}
+          >
 
-            <input name="name" placeholder="Name" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e)=>handleFile(e.target.files[0])}
+              className="hidden"
+              id="fileUpload"
+            />
 
-            <input name="email" placeholder="Email" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
-
-            <input type="number" name="age" placeholder="Age" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
-
-            <input type="number" name="bmi" placeholder="BMI" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
-
-            <select
-              name="gender"
-              onChange={handleGender}
-              className="p-2 text-white bg-white/10 border border-white/20"
+            <label
+              htmlFor="fileUpload"
+              className="cursor-pointer text-white"
             >
-              <option value="" style={{ color: "black" }}>Select Gender</option>
-              <option value="1" style={{ color: "black" }}>Male</option>
-              <option value="0" style={{ color: "black" }}>Female</option>
-            </select>
 
-            <input type="number" name="blood_pressure" placeholder="BP" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+              <p className="text-lg font-semibold mb-2">
+                Drag & Drop Fingerprint Image
+              </p>
 
-            <input type="number" name="cholesterol" placeholder="Cholesterol" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
+              <p className="text-sm text-gray-300">
+                or click to upload
+              </p>
 
-            <input type="number" name="glucose" placeholder="Glucose" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
-
-            <select
-              name="smoking"
-              onChange={handleChange}
-              className="p-2 text-white bg-white/10 border border-white/20"
-            >
-              <option value="">Smoking?</option>
-              <option value="1" style={{ color: "black" }}>Yes</option>
-              <option value="0" style={{ color: "black" }}>No</option>
-            </select>
-
-            <input type="number" name="physical_activity" placeholder="Activity" onChange={handleChange}
-              className="p-2 text-white bg-white/20 placeholder-gray-300" />
-
-            <select
-              name="alcohol"
-              onChange={handleChange}
-              className="p-2 text-white bg-white/10 border border-white/20"
-            >
-              <option value="">Alcohol?</option>
-              <option value="1" style={{ color: "black" }}>Yes</option>
-              <option value="0" style={{ color: "black" }}>No</option>
-            </select>
+            </label>
 
           </div>
 
-          <button
-            onClick={predictRisk}
-            disabled={loading}
-            className="w-full mt-6 bg-purple-600 p-3 rounded-xl disabled:opacity-50"
-          >
-            {loading ? "Analyzing..." : "Predict"}
-          </button>
+          {/* Preview */}
 
-          {/* ✅ FINAL RESULT FIX (UI SAME, ONLY CONDITION FIXED) */}
-          {result && result.prediction && (
+          {preview && (
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6 bg-white/10 p-6 rounded-xl text-white border border-white/20"
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              className="mt-6 flex justify-center"
             >
 
-              <h2 className="text-xl font-bold mb-2 text-center">
-                Prediction Result
+              <img
+                src={preview}
+                alt="preview"
+                className="w-40 h-40 object-cover rounded-xl border border-white/30"
+              />
+
+            </motion.div>
+
+          )}
+
+          {/* Predict Button */}
+
+          <button
+            disabled={loading}
+            className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-xl font-semibold hover:scale-105 transition"
+          >
+
+            {loading ? "AI Analyzing..." : "Predict Blood Group"}
+
+          </button>
+
+          {/* Loader */}
+
+          {loading && (
+
+            <div className="flex justify-center mt-6">
+
+              <motion.div
+                animate={{rotate:360}}
+                transition={{repeat:Infinity,duration:1}}
+                className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full"
+              />
+
+            </div>
+
+          )}
+
+          {/* Result */}
+
+          {result && (
+
+            <motion.div
+              initial={{opacity:0,y:20}}
+              animate={{opacity:1,y:0}}
+              className="mt-8 bg-white/10 p-6 rounded-xl text-center text-white border border-white/20"
+            >
+
+              <h2 className="text-2xl font-bold mb-2">
+                Blood Group Detected
               </h2>
 
-              <p className="text-center text-3xl font-bold text-purple-400">
-                {result.prediction}
+              <p className="text-4xl font-bold text-purple-400 mb-3">
+                {result.blood_group}
               </p>
 
-              <p className="text-center mt-2">
-                Confidence: {Number(result.confidence || 0).toFixed(2)}%
+              <p className="mb-3">
+                Confidence: {(result.confidence * 100).toFixed(2)}%
               </p>
 
-              <div className="mt-4 text-sm text-gray-200 whitespace-pre-line">
-                {result.possible_diseases}
+              {/* Confidence Bar */}
+
+              <div className="w-full bg-white/20 rounded-full h-4">
+
+                <motion.div
+                  initial={{width:0}}
+                  animate={{width:`${result.confidence * 100}%`}}
+                  transition={{duration:1}}
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
+                />
+
               </div>
 
             </motion.div>
 
           )}
 
-        </div>
+        </form>
+
       </motion.div>
+
     </div>
+
   )
+
 }
