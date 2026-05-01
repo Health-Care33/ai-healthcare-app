@@ -10,7 +10,6 @@ export default function FingerprintPrediction(){
   const [loading,setLoading] = useState(false)
   const [dragging,setDragging] = useState(false)
 
-  // ✅ cleanup preview (memory fix)
   useEffect(()=>{
     return ()=>{
       if(preview) URL.revokeObjectURL(preview)
@@ -21,7 +20,6 @@ export default function FingerprintPrediction(){
 
     if(!selectedFile) return
 
-    // ✅ validation
     if (!selectedFile.type.startsWith("image/")) {
       alert("Only image files allowed")
       return
@@ -77,19 +75,33 @@ export default function FingerprintPrediction(){
     }catch(err){
 
       console.log(err)
-      alert(err?.response?.data?.detail || "Prediction failed")
+
+      const errorMsg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        "Invalid fingerprint image"
+
+      setResult({
+        error: true,
+        message: errorMsg
+      })
 
     }
 
     setLoading(false)
   }
 
-  // ✅ confidence safe calc
   const getConfidence = () => {
-    if(!result) return 0
-    return result.confidence <= 1
-      ? (result.confidence * 100).toFixed(2)
-      : result.confidence.toFixed(2)
+    if (!result || result.confidence === undefined || result.confidence === null) {
+      return "0.00"
+    }
+
+    const value =
+      result.confidence <= 1
+        ? result.confidence * 100
+        : result.confidence
+
+    return Number(value).toFixed(2)
   }
 
   return(
@@ -112,7 +124,6 @@ export default function FingerprintPrediction(){
             Fingerprint Blood Group AI
           </h1>
 
-          {/* Drag & Drop */}
           <div
             onDragOver={(e)=>{e.preventDefault();setDragging(true)}}
             onDragLeave={()=>setDragging(false)}
@@ -146,7 +157,6 @@ export default function FingerprintPrediction(){
 
           </div>
 
-          {/* Preview */}
           {preview && (
             <motion.div
               initial={{opacity:0}}
@@ -161,7 +171,6 @@ export default function FingerprintPrediction(){
             </motion.div>
           )}
 
-          {/* Button */}
           <button
             disabled={loading}
             className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-xl font-semibold hover:scale-105 transition"
@@ -169,7 +178,6 @@ export default function FingerprintPrediction(){
             {loading ? "AI Analyzing..." : "Predict Blood Group"}
           </button>
 
-          {/* Loader */}
           {loading && (
             <div className="flex justify-center mt-6">
               <motion.div
@@ -180,7 +188,6 @@ export default function FingerprintPrediction(){
             </div>
           )}
 
-          {/* Result */}
           {result && (
             <motion.div
               initial={{opacity:0,y:20}}
@@ -188,27 +195,44 @@ export default function FingerprintPrediction(){
               className="mt-8 bg-white/10 p-6 rounded-xl text-center text-white border border-white/20"
             >
 
-              <h2 className="text-2xl font-bold mb-2">
-                Blood Group Detected
-              </h2>
+              {result.error ? (
 
-              <p className="text-4xl font-bold text-purple-400 mb-3">
-                {result.blood_group}
-              </p>
+                <>
+                  <h2 className="text-2xl font-bold text-red-400 mb-2">
+                    Invalid Image
+                  </h2>
 
-              <p className="mb-3">
-                Confidence: {getConfidence()}%
-              </p>
+                  <p className="text-gray-300">
+                    {result.message}
+                  </p>
+                </>
 
-              {/* Bar */}
-              <div className="w-full bg-white/20 rounded-full h-4">
-                <motion.div
-                  initial={{width:0}}
-                  animate={{width:`${getConfidence()}%`}}
-                  transition={{duration:1}}
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
-                />
-              </div>
+              ) : (
+
+                <>
+                  <h2 className="text-2xl font-bold mb-2">
+                    Blood Group Detected
+                  </h2>
+
+                  <p className="text-4xl font-bold text-purple-400 mb-3">
+                    {result.blood_group}
+                  </p>
+
+                  <p className="mb-3">
+                    Confidence: {getConfidence()}%
+                  </p>
+
+                  <div className="w-full bg-white/20 rounded-full h-4">
+                    <motion.div
+                      initial={{width:0}}
+                      animate={{width:`${getConfidence()}%`}}
+                      transition={{duration:1}}
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full"
+                    />
+                  </div>
+                </>
+
+              )}
 
             </motion.div>
           )}
