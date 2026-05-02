@@ -3,6 +3,7 @@ import axios from "axios"
 import { motion } from "framer-motion"
 import { Upload, Brain, Stethoscope } from "lucide-react"
 import jsPDF from "jspdf"
+import html2pdf from "html2pdf.js"   // ✅ ADDED
 
 export default function MedicalReportAI(){
 
@@ -13,7 +14,6 @@ export default function MedicalReportAI(){
   const [diagnosis,setDiagnosis] = useState("")
   const [loading,setLoading] = useState(false)
 
-  // Upload PDF
   const uploadReport = async () => {
 
     if(!file){
@@ -30,7 +30,6 @@ export default function MedicalReportAI(){
         formData
       )
 
-      // ✅ SAFE ACCESS FIX
       setReportText(res?.data?.data?.extracted_text || "")
 
     }catch(err){
@@ -39,7 +38,6 @@ export default function MedicalReportAI(){
     }
   }
 
-  // Ask AI
   const askAI = async () => {
 
     if(!reportText){
@@ -47,7 +45,7 @@ export default function MedicalReportAI(){
       return
     }
 
-    if(!question.trim()){   // ✅ EMPTY QUESTION FIX
+    if(!question.trim()){
       alert("Please enter a question")
       return
     }
@@ -65,7 +63,6 @@ export default function MedicalReportAI(){
 
       const data = res.data
 
-      // ✅ FALLBACK HANDLE FIX
       if(typeof data === "string"){
         setAnswer(data)
       }else{
@@ -76,11 +73,10 @@ export default function MedicalReportAI(){
       console.log(err)
       alert("Something went wrong")
     }finally{
-      setLoading(false)   // ✅ LOADING FIX
+      setLoading(false)
     }
   }
 
-  // Diagnosis
   const runDiagnosis = async () => {
 
     if(!reportText){
@@ -100,7 +96,6 @@ export default function MedicalReportAI(){
 
       const data = res.data
 
-      // ✅ FALLBACK HANDLE FIX
       if(typeof data === "string"){
         setDiagnosis(data)
       }else{
@@ -111,46 +106,24 @@ export default function MedicalReportAI(){
       console.log(err)
       alert("Something went wrong")
     }finally{
-      setLoading(false)   // ✅ LOADING FIX
+      setLoading(false)
     }
   }
 
-  // Download PDF
+  // ✅ REPLACED FUNCTION (MAIN FIX)
   const downloadPDF = () => {
 
-    const doc = new jsPDF()
+    const element = document.getElementById("pdf-content")
 
-    doc.setFont("Helvetica", "bold")
-    doc.setFontSize(18)
-    doc.text("Medical AI Report", 20, 20)
-
-    doc.setFontSize(12)
-    doc.setFont("Helvetica", "normal")
-
-    let y = 40
-
-    if(answer){
-      doc.setFont("Helvetica", "bold")
-      doc.text("AI Response:", 20, y)
-      y += 10
-
-      doc.setFont("Helvetica", "normal")
-      const splitAnswer = doc.splitTextToSize(answer, 170)
-      doc.text(splitAnswer, 20, y)
-      y += splitAnswer.length * 7 + 10
+    const opt = {
+      margin: 0.5,
+      filename: "Medical_Report_AI.pdf",
+      image: { type: "jpeg", quality: 1 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
     }
 
-    if(diagnosis){
-      doc.setFont("Helvetica", "bold")
-      doc.text("AI Diagnosis:", 20, y)
-      y += 10
-
-      doc.setFont("Helvetica", "normal")
-      const splitDiagnosis = doc.splitTextToSize(diagnosis, 170)
-      doc.text(splitDiagnosis, 20, y)
-    }
-
-    doc.save("Medical_Report_AI.pdf")
+    html2pdf().set(opt).from(element).save()
   }
 
   return(
@@ -236,32 +209,39 @@ export default function MedicalReportAI(){
           </div>
         )}
 
-        {answer && (
-          <motion.div 
-            initial={{opacity:0}}
-            animate={{opacity:1}}
-            className="mt-6 bg-white/20 p-5 rounded-xl border border-white/30 text-white"
-          >
-            <h2 className="font-bold mb-2 text-lg">
-              🤖 AI Response
-            </h2>
-           <p className="leading-relaxed" 
-           dangerouslySetInnerHTML={{ __html: answer }} />
-          </motion.div>
-        )}
+        {/* ✅ SAME UI, JUST WRAPPED */}
+        <div id="pdf-content">
 
-        {diagnosis && (
-          <motion.div 
-            initial={{opacity:0}}
-            animate={{opacity:1}}
-            className="mt-6 bg-green-500/20 p-5 rounded-xl border border-green-400/30 text-white"
-          >
-            <h2 className="font-bold mb-2 text-lg">
-              🩺 AI Diagnosis
-            </h2>
-            <p className="leading-relaxed">{diagnosis}</p>
-          </motion.div>
-        )}
+          {answer && (
+            <motion.div 
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              className="mt-6 bg-white/20 p-5 rounded-xl border border-white/30 text-white"
+            >
+              <h2 className="font-bold mb-2 text-lg">
+                🤖 AI Response
+              </h2>
+              <p 
+                className="leading-relaxed" 
+                dangerouslySetInnerHTML={{ __html: answer }} 
+              />
+            </motion.div>
+          )}
+
+          {diagnosis && (
+            <motion.div 
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              className="mt-6 bg-green-500/20 p-5 rounded-xl border border-green-400/30 text-white"
+            >
+              <h2 className="font-bold mb-2 text-lg">
+                🩺 AI Diagnosis
+              </h2>
+              <p className="leading-relaxed">{diagnosis}</p>
+            </motion.div>
+          )}
+
+        </div>
 
         {(answer || diagnosis) && (
           <button
